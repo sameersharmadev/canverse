@@ -1,5 +1,5 @@
 import React from 'react';
-import { Line, Rect, Circle, Arrow, Text, Group } from 'react-konva';
+import { Line, Rect, Circle, Arrow, Text } from 'react-konva';
 import type { DrawingElement } from '../../types/canvas';
 import { type Tool } from '../../types/canvas';
 
@@ -9,16 +9,15 @@ interface CanvasElementsProps {
   tool: Tool;
   canvasSize: { width: number; height: number };
   onElementDragEnd?: (element: DrawingElement, newPosition: { x: number; y: number }) => void;
-  selectedElements?: string[]; // Add selectedElements prop
+  selectedElements?: string[];
 }
 
 export const CanvasElements: React.FC<CanvasElementsProps> = ({
   elements,
   currentElement,
   tool,
-  canvasSize,
   onElementDragEnd,
-  selectedElements = [] // Default to empty array
+  selectedElements = []
 }) => {
   const renderElement = (element: DrawingElement) => {
     const isDraggable = tool === 'select';
@@ -31,7 +30,6 @@ export const CanvasElements: React.FC<CanvasElementsProps> = ({
       }
     };
 
-    // Prevent event propagation when dragging selected elements
     const handleDragStart = (e: any) => {
       if (isSelected && tool === 'select') {
         e.evt.stopPropagation();
@@ -44,7 +42,6 @@ export const CanvasElements: React.FC<CanvasElementsProps> = ({
       }
     };
 
-    // Common props for all elements
     const commonProps = {
       id: element.id,
       draggable: isDraggable,
@@ -114,36 +111,6 @@ export const CanvasElements: React.FC<CanvasElementsProps> = ({
             fill={isSelected ? '#3b82f6' : element.fill}
             stroke={isSelected ? '#3b82f6' : undefined}
             strokeWidth={isSelected ? 1 : 0}
-          />
-        );
-      case 'fill':
-        if (element.fillPath) {
-          const img = new Image();
-          img.src = element.fillPath;
-          return (
-            <Group key={element.id} id={element.id}>
-              <Rect
-                x={0}
-                y={0}
-                width={canvasSize.width}
-                height={canvasSize.height}
-                fillPatternImage={img}
-                fillPatternRepeat="no-repeat"
-                listening={false}
-              />
-            </Group>
-          );
-        }
-        return (
-          <Rect
-            key={element.id}
-            id={element.id}
-            x={element.x}
-            y={element.y}
-            width={element.width}
-            height={element.height}
-            fill={element.fill}
-            listening={false}
           />
         );
       default:

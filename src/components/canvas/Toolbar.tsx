@@ -2,7 +2,6 @@ import React from 'react';
 import { 
   Pen, 
   Eraser, 
-  PaintBucket, 
   Square, 
   CircleIcon, 
   ArrowUpRight, 
@@ -11,7 +10,7 @@ import {
   Redo2, 
   Trash2,
   MousePointer,
-  Hand // Add Hand icon for pan
+  Hand
 } from 'lucide-react';
 import type { Tool } from '../../types/canvas';
 import { COLOR_SWATCHES } from '../../types/canvas';
@@ -29,6 +28,8 @@ interface ToolbarProps {
   onClear: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  selectedElements: string[];
+  onDelete: () => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
@@ -40,26 +41,26 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   setStrokeWidth,
   onUndo,
   onRedo,
-  onClear,
   canUndo,
-  canRedo
+  canRedo,
+  selectedElements,
+  onDelete
 }) => {
   const tools = [
-    { name: 'select' as Tool, icon: MousePointer },
-    { name: 'pan' as Tool, icon: Hand },
-    { name: 'pen' as Tool, icon: Pen },
-    { name: 'eraser' as Tool, icon: Eraser },
-    { name: 'fill' as Tool, icon: PaintBucket },
-    { name: 'rectangle' as Tool, icon: Square },
-    { name: 'circle' as Tool, icon: CircleIcon },
-    { name: 'arrow' as Tool, icon: ArrowUpRight },
-    { name: 'text' as Tool, icon: Type }
+    { name: 'select' as Tool, icon: MousePointer, shortcut: 'V' },
+    { name: 'pan' as Tool, icon: Hand, shortcut: 'W' },
+    { name: 'pen' as Tool, icon: Pen, shortcut: 'P' },
+    { name: 'eraser' as Tool, icon: Eraser, shortcut: 'E' },
+    { name: 'rectangle' as Tool, icon: Square, shortcut: 'R' },
+    { name: 'circle' as Tool, icon: CircleIcon, shortcut: 'C' },
+    { name: 'arrow' as Tool, icon: ArrowUpRight, shortcut: 'A' },
+    { name: 'text' as Tool, icon: Type, shortcut: 'T' }
   ];
 
   const actions = [
     { onClick: onUndo, icon: Undo2, disabled: !canUndo, title: 'Undo' },
     { onClick: onRedo, icon: Redo2, disabled: !canRedo, title: 'Redo' },
-    { onClick: onClear, icon: Trash2, disabled: false, title: 'Clear' }
+    { onClick: onDelete, icon: Trash2, disabled: selectedElements.length === 0, title: 'Delete' }
   ];
 
   return (
@@ -79,13 +80,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap' }}>
         
-        {/* Tools */}
         <div style={{ display: 'flex', gap: '4px' }}>
-          {tools.map(({ name, icon: Icon }) => (
+          {tools.map(({ name, icon: Icon, shortcut }) => (
             <button
               key={name}
               onClick={() => setTool(name)}
               style={{
+                position: 'relative',
                 padding: '8px',
                 border: tool === name ? '2px solid #3b82f6' : '1px solid #e5e7eb',
                 backgroundColor: tool === name ? '#3b82f6' : '#ffffff',
@@ -96,17 +97,26 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center'
               }}
-              title={name}
+              title={`${name} (${shortcut})`}
             >
               <Icon size={16} />
+              <span style={{
+                position: 'absolute',
+                bottom: '2px',
+                right: '2px',
+                fontSize: '8px',
+                fontWeight: 'bold',
+                opacity: 0.7,
+                lineHeight: 1
+              }}>
+                {shortcut}
+              </span>
             </button>
           ))}
         </div>
 
-        {/* Separator */}
         <div style={{ width: '1px', height: '32px', backgroundColor: '#e5e7eb' }} />
 
-        {/* Color Swatches & Picker */}
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           {COLOR_SWATCHES.map((color) => (
             <button
@@ -131,10 +141,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           />
         </div>
 
-        {/* Separator */}
         <div style={{ width: '1px', height: '32px', backgroundColor: '#e5e7eb' }} />
 
-        {/* Stroke Width */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '12px', color: '#6b7280' }}>{strokeWidth}px</span>
           <input
@@ -143,14 +151,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             max="20"
             value={strokeWidth}
             onChange={(e) => setStrokeWidth(Number(e.target.value))}
-            style={{ width: '60px' }}
+            style={{ width: '80px' }}
           />
         </div>
 
-        {/* Separator */}
         <div style={{ width: '1px', height: '32px', backgroundColor: '#e5e7eb' }} />
 
-        {/* Actions */}
         <div style={{ display: 'flex', gap: '4px' }}>
           {actions.map(({ onClick, icon: Icon, disabled, title }, index) => (
             <button

@@ -6,7 +6,7 @@ export const useCanvasHistory = () => {
     elements: [], 
     backgroundColor: '#ffffff',
     viewport: { x: 0, y: 0, scale: 1 },
-    selectedElements: [] // Add selectedElements to initial state
+    selectedElements: []
   }]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [redoStack, setRedoStack] = useState<CanvasState[]>([]);
@@ -15,13 +15,13 @@ export const useCanvasHistory = () => {
     elements: DrawingElement[], 
     backgroundColor: string, 
     viewport?: { x: number; y: number; scale: number },
-    selectedElements?: string[] // Add selectedElements parameter
+    selectedElements?: string[]
   ) => {
     const newState: CanvasState = {
       elements: [...elements],
       backgroundColor,
       viewport: viewport || { x: 0, y: 0, scale: 1 },
-      selectedElements: selectedElements || [] // Include selectedElements in state
+      selectedElements: selectedElements || []
     };
     
     const newHistory = history.slice(0, historyIndex + 1);
