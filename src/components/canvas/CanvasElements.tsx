@@ -9,6 +9,7 @@ interface CanvasElementsProps {
   tool: Tool;
   canvasSize: { width: number; height: number };
   onElementDragEnd?: (element: DrawingElement, newPosition: { x: number; y: number }) => void;
+  selectedElements?: string[]; // Add selectedElements prop
 }
 
 export const CanvasElements: React.FC<CanvasElementsProps> = ({
@@ -16,10 +17,12 @@ export const CanvasElements: React.FC<CanvasElementsProps> = ({
   currentElement,
   tool,
   canvasSize,
-  onElementDragEnd
+  onElementDragEnd,
+  selectedElements = [] // Default to empty array
 }) => {
   const renderElement = (element: DrawingElement) => {
     const isDraggable = tool === 'select';
+    const isSelected = selectedElements.includes(element.id);
     
     const handleDragEnd = (e: any) => {
       if (onElementDragEnd) {
@@ -28,75 +31,89 @@ export const CanvasElements: React.FC<CanvasElementsProps> = ({
       }
     };
 
+    // Prevent event propagation when dragging selected elements
+    const handleDragStart = (e: any) => {
+      if (isSelected && tool === 'select') {
+        e.evt.stopPropagation();
+      }
+    };
+
+    const handleMouseDown = (e: any) => {
+      if (isSelected && tool === 'select') {
+        e.evt.stopPropagation();
+      }
+    };
+
+    // Common props for all elements
+    const commonProps = {
+      id: element.id,
+      draggable: isDraggable,
+      onDragEnd: handleDragEnd,
+      onDragStart: handleDragStart,
+      onMouseDown: handleMouseDown,
+      stroke: isSelected ? '#3b82f6' : element.stroke,
+      strokeWidth: isSelected ? (element.strokeWidth || 1) + 2 : element.strokeWidth,
+    };
+
     switch (element.type) {
       case 'pen':
       case 'eraser':
         return (
           <Line
             key={element.id}
+            {...commonProps}
             points={element.points ?? []}
-            stroke={element.type === 'eraser' ? '#000000' : element.stroke}
-            strokeWidth={element.strokeWidth}
+            stroke={element.type === 'eraser' ? '#000000' : (isSelected ? '#3b82f6' : element.stroke)}
             tension={0.5}
             lineCap="round"
             lineJoin="round"
             globalCompositeOperation={element.globalCompositeOperation as any}
-            draggable={isDraggable}
-            onDragEnd={handleDragEnd}
           />
         );
       case 'rectangle':
         return (
           <Rect
             key={element.id}
+            {...commonProps}
             x={element.x}
             y={element.y}
             width={element.width}
             height={element.height}
-            stroke={element.stroke}
-            strokeWidth={element.strokeWidth}
             fill={element.fill}
-            draggable={isDraggable}
-            onDragEnd={handleDragEnd}
           />
         );
       case 'circle':
         return (
           <Circle
             key={element.id}
+            {...commonProps}
             x={element.x}
             y={element.y}
             radius={element.radius}
-            stroke={element.stroke}
-            strokeWidth={element.strokeWidth}
             fill={element.fill}
-            draggable={isDraggable}
-            onDragEnd={handleDragEnd}
           />
         );
       case 'arrow':
         return (
           <Arrow
             key={element.id}
-            points={element.points}
-            stroke={element.stroke}
-            strokeWidth={element.strokeWidth}
-            fill={element.stroke}
-            draggable={isDraggable}
-            onDragEnd={handleDragEnd}
+            {...commonProps}
+            points={element.points ?? []}
+            fill={isSelected ? '#3b82f6' : element.stroke}
           />
         );
       case 'text':
         return (
           <Text
             key={element.id}
+            {...commonProps}
             x={element.x}
             y={element.y}
             text={element.text}
             fontSize={20}
-            fill={element.fill}
-            draggable={isDraggable}
-            onDragEnd={handleDragEnd}
+            fill={isSelected ? '#3b82f6' : element.fill}
+            stroke={isSelected ? '#3b82f6' : undefined}
+            strokeWidth={isSelected ? 1 : 0}
           />
         );
       case 'fill':
@@ -104,7 +121,7 @@ export const CanvasElements: React.FC<CanvasElementsProps> = ({
           const img = new Image();
           img.src = element.fillPath;
           return (
-            <Group key={element.id}>
+            <Group key={element.id} id={element.id}>
               <Rect
                 x={0}
                 y={0}
@@ -120,6 +137,7 @@ export const CanvasElements: React.FC<CanvasElementsProps> = ({
         return (
           <Rect
             key={element.id}
+            id={element.id}
             x={element.x}
             y={element.y}
             width={element.width}

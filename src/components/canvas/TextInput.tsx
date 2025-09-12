@@ -64,7 +64,6 @@ export const TextInputOverlay: React.FC<TextInputProps> = ({
         left: `${textInput.x}px`,
         top: `${textInput.y}px`,
         zIndex: 10000,
-        border: '2px solid #3b82f6',
         outline: 'none',
         backgroundColor: '#ffffff',
         fontSize: '20px',

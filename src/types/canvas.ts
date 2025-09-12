@@ -1,6 +1,6 @@
 export interface DrawingElement {
   id: string;
-  type: 'pen' | 'eraser' | 'rectangle' | 'circle' | 'arrow' | 'text' | 'fill';
+  type: 'pen' | 'eraser' | 'rectangle' | 'circle' | 'arrow' | 'text';
   points?: number[];
   x?: number;
   y?: number;
@@ -12,14 +12,24 @@ export interface DrawingElement {
   strokeWidth?: number;
   fill?: string;
   globalCompositeOperation?: string;
-  fillPath?: string;
+  strokeDashArray?: number[];
+  isSelected?: boolean;
 }
 
-export type Tool = 'select' | 'pen' | 'eraser' | 'fill' | 'rectangle' | 'circle' | 'arrow' | 'text';
+export interface SelectionBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export type Tool = 'select' | 'pan' | 'pen' | 'eraser' | 'rectangle' | 'circle' | 'arrow' | 'text';
 
 export interface CanvasState {
   elements: DrawingElement[];
   backgroundColor: string;
+  viewport?: { x: number; y: number; scale: number };
+  selectedElements?: string[];
 }
 
 export interface TextInput {

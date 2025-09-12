@@ -10,7 +10,8 @@ import {
   Undo2, 
   Redo2, 
   Trash2,
-  MousePointer
+  MousePointer,
+  Hand // Add Hand icon for pan
 } from 'lucide-react';
 import type { Tool } from '../../types/canvas';
 import { COLOR_SWATCHES } from '../../types/canvas';
@@ -44,7 +45,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   canRedo
 }) => {
   const tools = [
-    { name: 'move' as Tool, icon: MousePointer },
+    { name: 'select' as Tool, icon: MousePointer },
+    { name: 'pan' as Tool, icon: Hand },
     { name: 'pen' as Tool, icon: Pen },
     { name: 'eraser' as Tool, icon: Eraser },
     { name: 'fill' as Tool, icon: PaintBucket },

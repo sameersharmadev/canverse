@@ -4,15 +4,24 @@ import { type CanvasState, type DrawingElement } from '../types/canvas';
 export const useCanvasHistory = () => {
   const [history, setHistory] = useState<CanvasState[]>([{ 
     elements: [], 
-    backgroundColor: '#ffffff'
+    backgroundColor: '#ffffff',
+    viewport: { x: 0, y: 0, scale: 1 },
+    selectedElements: [] // Add selectedElements to initial state
   }]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [redoStack, setRedoStack] = useState<CanvasState[]>([]);
 
-  const saveToHistory = (elements: DrawingElement[], backgroundColor: string) => {
+  const saveToHistory = (
+    elements: DrawingElement[], 
+    backgroundColor: string, 
+    viewport?: { x: number; y: number; scale: number },
+    selectedElements?: string[] // Add selectedElements parameter
+  ) => {
     const newState: CanvasState = {
       elements: [...elements],
-      backgroundColor
+      backgroundColor,
+      viewport: viewport || { x: 0, y: 0, scale: 1 },
+      selectedElements: selectedElements || [] // Include selectedElements in state
     };
     
     const newHistory = history.slice(0, historyIndex + 1);
