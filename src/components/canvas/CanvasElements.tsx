@@ -67,6 +67,16 @@ export const CanvasElements: React.FC<CanvasElementsProps> = ({
             globalCompositeOperation={element.globalCompositeOperation as any}
           />
         );
+      case 'line':
+        return (
+          <Line
+            key={element.id}
+            {...commonProps}
+            points={element.points ?? []}
+            lineCap="round"
+            lineJoin="round"
+          />
+        );
       case 'rectangle':
         return (
           <Rect
@@ -107,8 +117,8 @@ export const CanvasElements: React.FC<CanvasElementsProps> = ({
             x={element.x}
             y={element.y}
             text={element.text}
-            fontSize={20}
-            fill={isSelected ? '#3b82f6' : element.fill}
+            fill={element.fill}
+            fontSize={element.fontSize || 20} 
             stroke={isSelected ? '#3b82f6' : undefined}
             strokeWidth={isSelected ? 1 : 0}
           />

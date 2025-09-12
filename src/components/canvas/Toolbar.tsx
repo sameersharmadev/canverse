@@ -6,11 +6,10 @@ import {
   CircleIcon, 
   ArrowUpRight, 
   Type, 
-  Undo2, 
-  Redo2, 
   Trash2,
   MousePointer,
-  Hand
+  Hand,
+  Minus
 } from 'lucide-react';
 import type { Tool } from '../../types/canvas';
 import { COLOR_SWATCHES } from '../../types/canvas';
@@ -51,6 +50,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     { name: 'pan' as Tool, icon: Hand, shortcut: 'W' },
     { name: 'pen' as Tool, icon: Pen, shortcut: 'P' },
     { name: 'eraser' as Tool, icon: Eraser, shortcut: 'E' },
+    { name: 'line' as Tool, icon: Minus, shortcut: 'L' },
     { name: 'rectangle' as Tool, icon: Square, shortcut: 'R' },
     { name: 'circle' as Tool, icon: CircleIcon, shortcut: 'C' },
     { name: 'arrow' as Tool, icon: ArrowUpRight, shortcut: 'A' },
@@ -58,8 +58,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   ];
 
   const actions = [
-    { onClick: onUndo, icon: Undo2, disabled: !canUndo, title: 'Undo' },
-    { onClick: onRedo, icon: Redo2, disabled: !canRedo, title: 'Redo' },
     { onClick: onDelete, icon: Trash2, disabled: selectedElements.length === 0, title: 'Delete' }
   ];
 
