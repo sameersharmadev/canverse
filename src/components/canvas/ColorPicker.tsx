@@ -16,22 +16,13 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ currentColor, onColorC
   };
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="relative">
       <button
         onClick={openColorPicker}
-        style={{
-          width: '36px',
-          height: '36px',
-          border: 'none',
-          cursor: 'pointer',
-          backgroundColor: '#ffffff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
+        className="w-9 h-9 border-none cursor-pointer bg-white flex items-center justify-center"
         title="Color Picker"
       >
-        <Palette size={20} color="#3b82f6" />
+        <Palette size={20} className="text-blue-500" />
       </button>
       
       <input
@@ -39,15 +30,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ currentColor, onColorC
         type="color"
         value={currentColor}
         onChange={(e) => onColorChange(e.target.value)}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          opacity: 0,
-          cursor: 'pointer'
-        }}
+        className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
       />
     </div>
   );

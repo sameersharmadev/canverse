@@ -3,7 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { connectRedis, closeRedis } from './redis';
+import { connectRedis, closeRedis, redisClient } from './redis'; 
 import { RoomManager } from './roomManager';
 import { DrawingElement, User } from './types';
 import { v4 as uuidv4 } from 'uuid';
@@ -26,6 +26,52 @@ app.use(express.json());
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.get('/rooms/:roomId/info', async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    
+    let roomExists = false;
+    let roomState;
+    
+    if (roomManager.hasRoom(roomId)) {
+      roomExists = true;
+      roomState = await roomManager.getRoomState(roomId);
+    } else {
+      try {
+        const redisData = await redisClient.get(`room:${roomId}`);
+        if (redisData) {
+          roomExists = true;
+          roomState = await roomManager.getRoomState(roomId);
+        }
+      } catch (error) {
+        console.error('Redis check failed:', error);
+      }
+    }
+    
+    if (!roomExists) {
+      roomExists = true;
+      roomState = {
+        elements: [],
+        users: new Map(),
+        viewport: { x: 0, y: 0, scale: 1 },
+        backgroundColor: '#ffffff',
+        lastActivity: Date.now()
+      };
+    }
+    
+    res.json({
+      roomId: roomExists ? roomId : null,
+      exists: roomExists,
+      userCount: roomState?.users?.size || 0,
+      elementCount: roomState?.elements?.length || 0,
+      lastActivity: roomState?.lastActivity || Date.now()
+    });
+  } catch (error) {
+    console.error('Error getting room info:', error);
+    res.status(500).json({ error: 'Failed to get room info' });
+  }
 });
 
 io.on('connection', (socket) => {

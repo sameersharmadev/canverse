@@ -62,73 +62,49 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   ];
 
   return (
-    <div 
-      style={{
-        position: 'fixed',
-        top: '0px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 9999,
-        backgroundColor: '#ffffff',
-        padding: '12px 16px',
-        borderRadius: '0 0 24px 24px',
-        border: '1px solid #e5e7eb',
-        borderTop: 'none'
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap' }}>
+    <div className="fixed top-1 left-1/2 transform -translate-x-1/2 z-[9999] bg-white px-4 py-3 rounded-b-3xl border border-gray-300 border-t-0">
+      <div className="flex items-center gap-3 flex-nowrap">
         
-        <div style={{ display: 'flex', gap: '4px' }}>
+        {/* Tools Section */}
+        <div className="flex gap-1">
           {tools.map(({ name, icon: Icon, shortcut }) => (
             <button
               key={name}
               onClick={() => setTool(name)}
-              style={{
-                position: 'relative',
-                padding: '8px',
-                border: tool === name ? '2px solid #3b82f6' : '1px solid #e5e7eb',
-                backgroundColor: tool === name ? '#3b82f6' : '#ffffff',
-                color: tool === name ? '#ffffff' : '#000000',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
+              className={`
+                relative p-2 rounded-lg cursor-pointer flex items-center justify-center transition-colors
+                ${tool === name 
+                  ? 'border-2 border-blue-500 bg-blue-500 text-white' 
+                  : 'border border-gray-300 bg-white text-black hover:bg-gray-50'
+                }
+              `}
               title={`${name} (${shortcut})`}
             >
               <Icon size={16} />
-              <span style={{
-                position: 'absolute',
-                bottom: '2px',
-                right: '2px',
-                fontSize: '8px',
-                fontWeight: 'bold',
-                opacity: 0.7,
-                lineHeight: 1
-              }}>
+              <span className="absolute bottom-0.5 right-0.5 text-[8px] font-bold opacity-70 leading-none">
                 {shortcut}
               </span>
             </button>
           ))}
         </div>
 
-        <div style={{ width: '1px', height: '32px', backgroundColor: '#e5e7eb' }} />
+        {/* Divider */}
+        <div className="w-px h-8 bg-gray-300" />
 
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+        {/* Color Swatches Section */}
+        <div className="flex gap-1.5 items-center">
           {COLOR_SWATCHES.map((color) => (
             <button
               key={color}
               onClick={() => setCurrentColor(color)}
-              style={{
-                width: '24px',
-                height: '24px',
-                backgroundColor: color,
-                border: currentColor === color ? '2px solid #3b82f6' : '1px solid #ccc',
-                borderRadius: '50%',
-                cursor: 'pointer',
-                boxShadow: currentColor === color ? '0 0 0 1px rgba(59, 130, 246, 0.3)' : 'none'
-              }}
+              className={`
+                w-6 h-6 rounded-full cursor-pointer transition-all
+                ${currentColor === color 
+                  ? 'border-2 border-blue-500 shadow-[0_0_0_1px_rgba(59,130,246,0.3)]' 
+                  : 'border border-gray-400'
+                }
+              `}
+              style={{ backgroundColor: color }}
               title={color}
             />
           ))}
@@ -139,40 +115,39 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           />
         </div>
 
-        <div style={{ width: '1px', height: '32px', backgroundColor: '#e5e7eb' }} />
+        {/* Divider */}
+        <div className="w-px h-8 bg-gray-300" />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '12px', color: '#6b7280' }}>{strokeWidth}px</span>
+        {/* Stroke Width Section */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500">{strokeWidth}px</span>
           <input
             type="range"
             min="1"
             max="20"
             value={strokeWidth}
             onChange={(e) => setStrokeWidth(Number(e.target.value))}
-            style={{ width: '80px' }}
+            className="w-20"
           />
         </div>
 
-        <div style={{ width: '1px', height: '32px', backgroundColor: '#e5e7eb' }} />
+        {/* Divider */}
+        <div className="w-px h-8 bg-gray-300" />
 
-        <div style={{ display: 'flex', gap: '4px' }}>
+        {/* Actions Section */}
+        <div className="flex gap-1">
           {actions.map(({ onClick, icon: Icon, disabled, title }, index) => (
             <button
               key={index}
               onClick={onClick}
               disabled={disabled}
-              style={{
-                padding: '8px',
-                border: '1px solid #e5e7eb',
-                backgroundColor: '#ffffff',
-                color: disabled ? '#9ca3af' : '#000000',
-                borderRadius: '8px',
-                cursor: disabled ? 'not-allowed' : 'pointer',
-                opacity: disabled ? 0.5 : 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
+              className={`
+                p-2 border border-gray-300 bg-white rounded-lg flex items-center justify-center transition-colors
+                ${disabled 
+                  ? 'text-gray-400 cursor-not-allowed opacity-50' 
+                  : 'text-black cursor-pointer hover:bg-gray-50'
+                }
+              `}
               title={title}
             >
               <Icon size={16} />

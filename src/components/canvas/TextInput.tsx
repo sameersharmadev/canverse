@@ -60,19 +60,11 @@ export const TextInputOverlay: React.FC<TextInputProps> = ({
       onMouseDown={handleMouseDown}
       onClick={handleClick}
       style={{
-        position: 'fixed',
         left: `${textInput.x}px`,
         top: `${textInput.y}px`,
-        zIndex: 10000,
-        outline: 'none',
-        backgroundColor: '#ffffff',
-        fontSize: '20px',
-        fontFamily: 'Arial, sans-serif',
-        color: currentColor,
-        minWidth: '200px',
-        padding: '4px 8px',
-        border: 'none'
+        color: currentColor
       }}
+      className="fixed z-[10000] outline-none bg-white text-xl font-sans min-w-[200px] px-2 py-1 border-none"
       placeholder="Type here..."
     />
   );

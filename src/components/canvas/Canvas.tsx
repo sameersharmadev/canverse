@@ -7,6 +7,7 @@ import { TextInputOverlay } from './TextInput.tsx';
 import { CanvasElements } from './CanvasElements.tsx';
 import { useSocket } from '../../hooks/useSocket'; 
 import { UserCursors } from './UserCursors';
+import { Copy, LogOut } from 'lucide-react';
 
 interface WhiteboardProps {
   roomId: string;
@@ -14,7 +15,7 @@ interface WhiteboardProps {
   onLeaveRoom: () => void;
 }
 
-export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeaveRoom }) => { 
+export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeaveRoom }) => {
   const [tool, setTool] = useState<Tool>('pen');
   const [elements, setElements] = useState<DrawingElement[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -38,6 +39,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
   const [remoteElements, setRemoteElements] = useState<DrawingElement[]>([]);
+  const [copied, setCopied] = useState(false);
 
   const stageRef = useRef<Konva.Stage>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -710,21 +712,78 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
     setSelectedElements([]);
   };
 
+  const roomUrl = `${window.location.origin}?room=${roomId}`;
+
+  const handleCopyRoomLink = () => {
+    navigator.clipboard.writeText(roomUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const userList = Array.from(connectedUsers.values());
+  const displayedUsers = userList.slice(0, 3);
+  const extraUsersCount = Math.max(0, userList.length - 3);
+
   return (
     <>
-      <div style={{
-        position: 'fixed',
-        top: '10px',
-        right: '10px',
-        zIndex: 10000,
-        padding: '8px 16px',
-        backgroundColor: isConnected ? '#10b981' : '#ef4444',
-        color: 'white',
-        borderRadius: '20px',
-        fontSize: '12px',
-        fontWeight: '500'
-      }}>
-        {isConnected ? `Connected • ${connectedUsers.size} users` : 'Connecting...'}
+      {/* Top Left - Room Info */}
+      <div className="fixed top-2 left-5 z-[10001] bg-white/95 backdrop-blur-md rounded-2xl px-5 py-3 border border-white/20 flex items-center gap-3 font-inter text-sm font-medium">
+        <span
+          className="text-gray-800 cursor-pointer select-none transition-all duration-200 hover:text-blue-600"
+          title="Click to copy room link"
+          onClick={handleCopyRoomLink}
+        >
+          Room: <span className="text-blue-600 font-bold font-mono bg-gradient-to-r from-blue-50 to-indigo-50 px-2 py-0.5 rounded-md cursor-pointer">{roomId}</span>
+        </span>
+        
+        <button
+          onClick={handleCopyRoomLink}
+          className="bg-transparent border-none rounded-lg p-1.5 cursor-pointer flex items-center transition-all duration-200 text-gray-500 hover:bg-gray-100 hover:text-blue-600"
+          title={copied ? "Copied!" : "Copy room link"}
+        >
+          <Copy size={16} />
+        </button>
+      </div>
+
+      {/* Top Right - Users and Logout */}
+      <div className="fixed top-2 right-5 z-[10001] bg-white/95 backdrop-blur-md rounded-2xl px-5 py-3 border border-white/20 flex items-center gap-3 font-inter ">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center">
+              {displayedUsers.map((user) => (
+                <div
+                  key={user.id}
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold border-2 border-white"
+                  style={{ backgroundColor: user.color || '#6b7280' }}
+                  title={user.name}
+                >
+                  {user.name?.charAt(0)?.toUpperCase() || '?'}
+                </div>
+              ))}
+              {extraUsersCount > 0 && (
+                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-semibold border-2 border-white">
+                  +{extraUsersCount}
+                </div>
+              )}
+            </div>
+            <span className="text-xs text-gray-600 font-medium ml-1">
+              {isConnected
+                ? `${connectedUsers.size} online`
+                : 'Connecting...'
+              }
+            </span>
+          </div>
+        </div>
+        
+        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
+        
+        <button
+          onClick={onLeaveRoom}
+          className="bg-transparent border-none rounded-lg p-1.5 cursor-pointer flex items-center transition-all duration-200 text-gray-500 hover:bg-red-50 hover:text-red-600"
+          title="Leave room"
+        >
+          <LogOut size={16} />
+        </button>
       </div>
 
       <Toolbar
@@ -751,16 +810,11 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
 
       <div
         ref={containerRef}
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: '#f9fafb',
-          cursor: tool === 'pan' ? (isPanning ? 'grabbing' : 'grab') : (tool === 'select' ? 'default' : 'crosshair'),
-          overflow: 'hidden'
-        }}
+        className={`fixed top-0 left-0 w-screen h-screen bg-gray-50 overflow-hidden ${
+          tool === 'pan' 
+            ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') 
+            : (tool === 'select' ? 'cursor-default' : 'cursor-crosshair')
+        }`}
       >
         <Stage
           width={canvasSize.width}
@@ -799,9 +853,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
                 y={selectionBox.height < 0 ? selectionBox.y + selectionBox.height : selectionBox.y}
                 width={Math.abs(selectionBox.width)}
                 height={Math.abs(selectionBox.height)}
-                stroke="#3b82f6"
+                stroke="#6366f1"
                 strokeWidth={1 / viewport.scale}
-                fill="rgba(59, 130, 246, 0.1)"
+                fill="rgba(99, 102, 241, 0.08)"
                 dash={[5 / viewport.scale, 5 / viewport.scale]}
                 listening={false}
               />
@@ -851,7 +905,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
                       y: node.y(),
                       width: node.width() * node.scaleX(),
                       height: node.height() * node.scaleY(),
-                      fontSize: node.height() * node.scaleY(),
+                      fontSize: Math.max(12, node.height() * node.scaleY()),
                     };
                   }
 

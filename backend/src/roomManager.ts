@@ -127,4 +127,8 @@ export class RoomManager {
     
     return colors[Math.abs(hash) % colors.length];
   }
+
+  hasRoom(roomId: string): boolean {
+    return this.rooms.has(roomId);
+  }
 }

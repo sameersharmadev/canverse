@@ -1,69 +1,196 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Users, ArrowRight, ArrowLeft, Link2 } from 'lucide-react';
 
 interface RoomSelectorProps {
   onJoinRoom: (roomId: string, userName: string) => void;
 }
 
+const checkRoomExists = async (roomId: string) => {
+  try {
+    const res = await fetch(`http://localhost:3001/rooms/${roomId}/info`);
+    if (!res.ok) return false;
+    const data = await res.json();
+    return !!data.roomId;
+  } catch {
+    return false;
+  }
+};
+
+const extractRoomIdFromUrl = (input: string): string => {
+  try {
+    const url = new URL(input);
+    const roomId = url.searchParams.get('room');
+    if (roomId) return roomId.toUpperCase();
+  } catch {
+  }
+  return input.trim().toUpperCase();
+};
+
 export const RoomSelector: React.FC<RoomSelectorProps> = ({ onJoinRoom }) => {
-  const [roomId, setRoomId] = useState('');
   const [userName, setUserName] = useState('');
+  const [roomInput, setRoomInput] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+  const [isJoinFlow, setIsJoinFlow] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlRoomId = params.get('room');
+    if (urlRoomId) {
+      setIsJoinFlow(true);
+      setRoomInput(urlRoomId.toUpperCase());
+    }
+  }, []);
 
   const generateRoomId = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
   };
 
-  const handleJoin = () => {
-    if (userName.trim() && roomId.trim()) {
-      setIsJoining(true);
-      onJoinRoom(roomId.toUpperCase(), userName.trim());
+  const handleCreateRoom = () => {
+    if (userName.trim()) {
+      const roomId = generateRoomId();
+      window.history.replaceState({}, '', `?room=${roomId}`);
+      onJoinRoom(roomId, userName.trim());
     }
   };
 
-  const handleCreateNew = () => {
-    if (userName.trim()) {
-      const newRoomId = generateRoomId();
-      setRoomId(newRoomId);
+  const handleJoinRoom = async () => {
+    if (userName.trim() && roomInput.trim()) {
       setIsJoining(true);
-      onJoinRoom(newRoomId, userName.trim());
+      setError('');
+      
+      const roomId = extractRoomIdFromUrl(roomInput);
+      
+      if (roomId.length < 4) {
+        setError('Please enter a valid room ID or URL');
+        setIsJoining(false);
+        return;
+      }
+
+      try {
+        const exists = await checkRoomExists(roomId);
+        if (!exists) {
+          setError('Room not found. Check the room ID or ask for a new invite.');
+          setIsJoining(false);
+          return;
+        }
+        
+        window.history.replaceState({}, '', `?room=${roomId}`);
+        onJoinRoom(roomId, userName.trim());
+      } catch {
+        setError('Failed to check room. Please try again.');
+        setIsJoining(false);
+      }
     }
   };
+
+  const resetFlow = () => {
+    setIsJoinFlow(false);
+    setRoomInput('');
+    setError('');
+    window.history.replaceState({}, '', '/');
+  };
+
+  if (isJoinFlow) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-5">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-10 w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center mb-4">
+              <Link2 size={32} className="text-blue-600 mr-3" />
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Join Room</h1>
+                <p className="text-gray-600">Enter your details to join the whiteboard</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-5 mb-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Your Name
+              </label>
+              <input
+                type="text"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder="Enter your name"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-base outline-none focus:border-blue-500 transition-colors"
+                onKeyPress={(e) => e.key === 'Enter' && userName.trim() && roomInput.trim() && handleJoinRoom()}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Room ID or Link
+              </label>
+              <input
+                type="text"
+                value={roomInput}
+                onChange={(e) => setRoomInput(e.target.value)}
+                placeholder="Paste invite link or Room ID"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-base outline-none focus:border-blue-500 transition-colors font-mono"
+                onKeyPress={(e) => e.key === 'Enter' && userName.trim() && roomInput.trim() && handleJoinRoom()}
+              />
+              <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                Enter room ID or paste full invite link
+              </p>
+            </div>
+          </div>
+
+          {error && (
+            <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <button
+              onClick={handleJoinRoom}
+              disabled={!userName.trim() || !roomInput.trim() || isJoining}
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            >
+              {isJoining ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Joining...
+                </>
+              ) : (
+                <>
+                  Join Room
+                  <ArrowRight size={16} />
+                </>
+              )}
+            </button>
+            
+            <button
+              onClick={resetFlow}
+              className="w-full text-gray-600 py-2 px-4 rounded-lg font-medium hover:text-gray-800 transition-colors flex items-center justify-center gap-2 border-2 border-gray-200"
+            >
+              <ArrowLeft size={16} />
+              Back to Create
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '100vh',
-      backgroundColor: '#f9fafb',
-      padding: '20px'
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        padding: '40px',
-        borderRadius: '12px',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        width: '100%',
-        maxWidth: '400px'
-      }}>
-        <h1 style={{
-          textAlign: 'center',
-          marginBottom: '30px',
-          fontSize: '28px',
-          color: '#1f2937'
-        }}>
-          Join Canverse
-        </h1>
-        
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{
-            display: 'block',
-            marginBottom: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
-            color: '#374151'
-          }}>
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-5">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-10 w-full max-w-md">
+        <div className="mb-10">
+          <div className="flex items-center justify-center mb-5 gap-4">
+            <Users size={40} className="text-blue-600 mr-4" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Canverse</h1>
+              <p className="text-gray-600 text-sm">Collaborative whiteboard for teams</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
             Your Name
           </label>
           <input
@@ -71,83 +198,36 @@ export const RoomSelector: React.FC<RoomSelectorProps> = ({ onJoinRoom }) => {
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
             placeholder="Enter your name"
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              fontSize: '16px',
-              outline: 'none'
-            }}
-            onKeyPress={(e) => e.key === 'Enter' && handleJoin()}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-base outline-none focus:border-blue-500 transition-colors"
+            onKeyPress={(e) => e.key === 'Enter' && userName.trim() && handleCreateRoom()}
           />
         </div>
 
-        <div style={{ marginBottom: '30px' }}>
-          <label style={{
-            display: 'block',
-            marginBottom: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
-            color: '#374151'
-          }}>
-            Room ID
-          </label>
-          <input
-            type="text"
-            value={roomId}
-            onChange={(e) => setRoomId(e.target.value.toUpperCase())}
-            placeholder="Enter room ID"
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              fontSize: '16px',
-              outline: 'none',
-              textTransform: 'uppercase'
-            }}
-            onKeyPress={(e) => e.key === 'Enter' && handleJoin()}
-          />
-        </div>
-
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div className="space-y-4">
           <button
-            onClick={handleJoin}
-            disabled={!userName.trim() || !roomId.trim() || isJoining}
-            style={{
-              flex: 1,
-              padding: '12px',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '16px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              opacity: (!userName.trim() || !roomId.trim() || isJoining) ? 0.5 : 1
-            }}
+            onClick={handleCreateRoom}
+            disabled={!userName.trim()}
+            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
-            {isJoining ? 'Joining...' : 'Join Room'}
+            Create New Room
+            <ArrowRight size={16} />
           </button>
           
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="px-4 bg-white text-gray-500 text-sm">or</span>
+            </div>
+          </div>
+          
           <button
-            onClick={handleCreateNew}
-            disabled={!userName.trim() || isJoining}
-            style={{
-              flex: 1,
-              padding: '12px',
-              backgroundColor: '#10b981',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '16px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              opacity: (!userName.trim() || isJoining) ? 0.5 : 1
-            }}
+            onClick={() => setIsJoinFlow(true)}
+            className="w-full text-blue-600 py-3 px-4 rounded-lg font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 border-2 border-blue-200"
           >
-            Create New
+            <Link2 size={16} />
+            Have an invite? Join room
           </button>
         </div>
       </div>
