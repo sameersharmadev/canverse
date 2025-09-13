@@ -95,47 +95,45 @@ export const RoomSelector: React.FC<RoomSelectorProps> = ({ onJoinRoom }) => {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-5">
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-10 w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center mb-4">
-              <Link2 size={32} className="text-blue-600 mr-3" />
+          <div className="mb-10">
+            <div className="flex items-center justify-center mb-5 gap-4">
+              <Link2 size={40} className="text-blue-600 mr-4" />
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Join Room</h1>
-                <p className="text-gray-600">Enter your details to join the whiteboard</p>
+                <h1 className="text-2xl font-bold text-gray-900">Join Room</h1>
+                <p className="text-gray-600 text-sm">Enter your details to join the whiteboard</p>
               </div>
             </div>
           </div>
 
-          <div className="space-y-5 mb-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Your Name
-              </label>
-              <input
-                type="text"
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
-                placeholder="Enter your name"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-base outline-none focus:border-blue-500 transition-colors"
-                onKeyPress={(e) => e.key === 'Enter' && userName.trim() && roomInput.trim() && handleJoinRoom()}
-              />
-            </div>
+          <div className="mb-8">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Your Name
+            </label>
+            <input
+              type="text"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              placeholder="Enter your name"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-base outline-none focus:border-blue-500 transition-colors"
+              onKeyPress={(e) => e.key === 'Enter' && userName.trim() && roomInput.trim() && handleJoinRoom()}
+            />
+          </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Room ID or Link
-              </label>
-              <input
-                type="text"
-                value={roomInput}
-                onChange={(e) => setRoomInput(e.target.value)}
-                placeholder="Paste invite link or Room ID"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-base outline-none focus:border-blue-500 transition-colors font-mono"
-                onKeyPress={(e) => e.key === 'Enter' && userName.trim() && roomInput.trim() && handleJoinRoom()}
-              />
-              <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
-                Enter room ID or paste full invite link
-              </p>
-            </div>
+          <div className="mb-8">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Room ID or Link
+            </label>
+            <input
+              type="text"
+              value={roomInput}
+              onChange={(e) => setRoomInput(e.target.value)}
+              placeholder="Paste invite link or Room ID"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-base outline-none focus:border-blue-500 transition-colors font-mono"
+              onKeyPress={(e) => e.key === 'Enter' && userName.trim() && roomInput.trim() && handleJoinRoom()}
+            />
+            <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
+              Enter room ID or paste full invite link
+            </p>
           </div>
 
           {error && (
@@ -144,7 +142,7 @@ export const RoomSelector: React.FC<RoomSelectorProps> = ({ onJoinRoom }) => {
             </div>
           )}
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <button
               onClick={handleJoinRoom}
               disabled={!userName.trim() || !roomInput.trim() || isJoining}
@@ -163,9 +161,18 @@ export const RoomSelector: React.FC<RoomSelectorProps> = ({ onJoinRoom }) => {
               )}
             </button>
             
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="px-4 bg-white text-gray-500 text-sm">or</span>
+              </div>
+            </div>
+            
             <button
               onClick={resetFlow}
-              className="w-full text-gray-600 py-2 px-4 rounded-lg font-medium hover:text-gray-800 transition-colors flex items-center justify-center gap-2 border-2 border-gray-200"
+              className="w-full text-blue-600 py-3 px-4 rounded-lg font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 border-2 border-blue-200"
             >
               <ArrowLeft size={16} />
               Back to Create
