@@ -94,7 +94,7 @@ export const RoomSelector: React.FC<RoomSelectorProps> = ({ onJoinRoom }) => {
   if (isJoinFlow) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-5">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-10 w-full max-w-md">
+        <div className="bg-white rounded-2xl border border-gray-200 p-10 w-full max-w-md">
           <div className="mb-10">
             <div className="flex items-center justify-center mb-5 gap-4">
               <Link2 size={40} className="text-blue-600 mr-4" />
@@ -185,7 +185,7 @@ export const RoomSelector: React.FC<RoomSelectorProps> = ({ onJoinRoom }) => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-5">
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-10 w-full max-w-md">
+      <div className="bg-white rounded-2xl border border-gray-200 p-10 w-full max-w-md">
         <div className="mb-10">
           <div className="flex items-center justify-center mb-5 gap-4">
             <Users size={40} className="text-blue-600 mr-4" />

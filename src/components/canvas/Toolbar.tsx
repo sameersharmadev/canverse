@@ -22,11 +22,7 @@ interface ToolbarProps {
   setCurrentColor: (color: string) => void;
   strokeWidth: number;
   setStrokeWidth: (width: number) => void;
-  onUndo: () => void;
-  onRedo: () => void;
   onClear: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
   selectedElements: string[];
   onDelete: () => void;
 }
@@ -38,10 +34,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   setCurrentColor,
   strokeWidth,
   setStrokeWidth,
-  onUndo,
-  onRedo,
-  canUndo,
-  canRedo,
   selectedElements,
   onDelete
 }) => {
@@ -62,7 +54,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   ];
 
   return (
-    <div className="fixed top-1 left-1/2 transform -translate-x-1/2 z-[9999] bg-white px-4 py-3 rounded-b-3xl border border-gray-300 border-t-0">
+    <div className="fixed top-1 left-1/2 transform -translate-x-1/2 z-[100] bg-white px-4 py-3 rounded-b-3xl border border-neutral-200 border-t-0">
       <div className="flex items-center gap-3 flex-nowrap">
         
         {/* Tools Section */}
@@ -72,23 +64,22 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               key={name}
               onClick={() => setTool(name)}
               className={`
-                relative p-2 rounded-lg cursor-pointer flex items-center justify-center transition-colors
+                relative p-3 rounded-lg cursor-pointer flex items-center justify-center transition-colors
                 ${tool === name 
-                  ? 'border-2 border-blue-500 bg-blue-500 text-white' 
-                  : 'border border-gray-300 bg-white text-black hover:bg-gray-50'
+                  ? 'bg-blue-100 text-blue-600' 
+                  : 'bg-white text-black hover:bg-gray-50'
                 }
               `}
-              title={`${name} (${shortcut})`}
+              title={`${name.slice(0, 1).toUpperCase() + name.slice(1)} (${shortcut})`}
             >
               <Icon size={16} />
-              <span className="absolute bottom-0.5 right-0.5 text-[8px] font-bold opacity-70 leading-none">
+              <span className="absolute bottom-1 right-1 text-[8px] font-bold opacity-70 leading-none">
                 {shortcut}
               </span>
             </button>
           ))}
         </div>
 
-        {/* Divider */}
         <div className="w-px h-8 bg-gray-300" />
 
         {/* Color Swatches Section */}
@@ -115,7 +106,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           />
         </div>
 
-        {/* Divider */}
         <div className="w-px h-8 bg-gray-300" />
 
         {/* Stroke Width Section */}
@@ -131,7 +121,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           />
         </div>
 
-        {/* Divider */}
         <div className="w-px h-8 bg-gray-300" />
 
         {/* Actions Section */}

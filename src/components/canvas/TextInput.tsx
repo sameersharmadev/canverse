@@ -64,7 +64,7 @@ export const TextInputOverlay: React.FC<TextInputProps> = ({
         top: `${textInput.y}px`,
         color: currentColor
       }}
-      className="fixed z-[10000] outline-none bg-white text-xl font-sans min-w-[200px] px-2 py-1 border-none"
+      className="fixed z-[10000] outline-none text-xl font-sans min-w-[200px] px-2 py-1 border-none"
       placeholder="Type here..."
     />
   );

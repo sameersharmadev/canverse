@@ -50,9 +50,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
     emitDrawingUpdate,
     emitDrawingEnd,
     emitCursorMove,
-    emitElementsDeleted,
-    isConnected: socketConnected
-  } = useSocket({
+    emitElementsDeleted  } = useSocket({
     roomId,
     userName,
     onRoomState: (data) => {
@@ -726,7 +724,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
 
   return (
     <>
-      {/* Top Left - Room Info */}
       <div className="fixed top-2 left-5 z-[10001] bg-white/95 backdrop-blur-md rounded-2xl px-5 py-3 border border-white/20 flex items-center gap-3 font-inter text-sm font-medium">
         <span
           className="text-gray-800 cursor-pointer select-none transition-all duration-200 hover:text-blue-600"
@@ -745,7 +742,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
         </button>
       </div>
 
-      {/* Top Right - Users and Logout */}
       <div className="fixed top-2 right-5 z-[10001] bg-white/95 backdrop-blur-md rounded-2xl px-5 py-3 border border-white/20 flex items-center gap-3 font-inter ">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
@@ -869,7 +865,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
                 }
                 return newBox;
               }}
-              onTransformEnd={(e) => {
+              onTransformEnd={() => {
                 const nodes = transformerRef?.nodes() || [];
                 nodes.forEach(node => {
                   const id = node.id();
@@ -891,12 +887,12 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
                       ...element,
                       x: node.x(),
                       y: node.y(),
-                      radius: node.radius() * node.scaleX(),
+                      radius: (node.width() * node.scaleX()) / 2,
                     };
                   } else if (element.type === 'line' || element.type === 'arrow') {
                     updatedElement = {
                       ...element,
-                      points: node.points ? node.points() : element.points,
+                      points: node.getAttr('points') ?? element.points,
                     };
                   } else if (element.type === 'text') {
                     updatedElement = {
