@@ -84,8 +84,16 @@ io.on('connection', (socket) => {
     try {
       console.log('Join room request:', data);
       const { roomId, userName } = data;
+      
+      if (currentRoomId && currentUserId) {
+        console.log('Socket already in room, ignoring duplicate join');
+        return;
+      }
+      
       currentRoomId = roomId;
       currentUserId = uuidv4();
+      
+      socket.data = { userId: currentUserId, roomId };
       
       socket.join(roomId);
       console.log(`Socket ${socket.id} joined room ${roomId}`);
@@ -100,12 +108,22 @@ io.on('connection', (socket) => {
       await roomManager.addUserToRoom(roomId, user);
       const roomState = await roomManager.getRoomState(roomId);
       
+      const voiceUsers = roomManager.getVoiceUsers(roomId).map(id => {
+        const voiceUser = roomState.users.get(id);
+        return {
+          userId: id,
+          userName: voiceUser?.name || 'Unknown',
+          userColor: voiceUser?.color || roomManager.getUserColor(id)
+        };
+      });
+      
       socket.emit('room-state', {
         elements: roomState.elements,
         users: Array.from(roomState.users.values()),
         viewport: roomState.viewport,
         backgroundColor: roomState.backgroundColor,
-        userId: currentUserId
+        userId: currentUserId,
+        voiceUsers
       });
       
       socket.to(roomId).emit('user-joined', user);
@@ -117,10 +135,90 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('voice-join', async (data: { roomId: string; userId: string; userName: string; userColor: string }) => {
+    console.log(`User ${data.userName} (${data.userId}) joined voice chat in room ${data.roomId}`);
+    
+    roomManager.addUserToVoiceChat(data.roomId, data.userId);
+    
+    const existingVoiceUsers = roomManager.getVoiceUsers(data.roomId);
+    const roomState = await roomManager.getRoomState(data.roomId);
+    
+    if (existingVoiceUsers.length > 1) {
+      const voiceUsersDetails = existingVoiceUsers
+        .filter(id => id !== data.userId)
+        .map(id => {
+          const user = roomState.users.get(id);
+          return {
+            userId: id,
+            userName: user?.name || 'Unknown',
+            userColor: user?.color || roomManager.getUserColor(id)
+          };
+        });
+      
+      console.log(`Sending existing voice users to ${data.userId}:`, voiceUsersDetails);
+      socket.emit('voice-room-state', { voiceUsers: voiceUsersDetails });
+    }
+    
+    socket.to(data.roomId).emit('voice-user-joined', {
+      userId: data.userId,
+      userName: data.userName,
+      userColor: data.userColor
+    });
+  });
+
+  socket.on('voice-leave', (data: { roomId: string; userId: string }) => {
+    console.log(`User ${data.userId} left voice chat in room ${data.roomId}`);
+    
+    roomManager.removeUserFromVoiceChat(data.roomId, data.userId);
+    
+    socket.to(data.roomId).emit('voice-user-left', {
+      userId: data.userId
+    });
+  });
+
+  socket.on('voice-signal', (data: { roomId: string; targetUserId: string; signal: any; callerUserId: string }) => {
+    console.log(`Relaying signal from ${data.callerUserId} to ${data.targetUserId}`);
+    
+    const sockets = io.sockets.adapter.rooms.get(data.roomId);
+    if (sockets) {
+      for (const socketId of sockets) {
+        const targetSocket = io.sockets.sockets.get(socketId);
+        if (targetSocket && targetSocket.data?.userId === data.targetUserId) {
+          targetSocket.emit('voice-signal', {
+            callerUserId: data.callerUserId,
+            signal: data.signal
+          });
+          console.log(`Signal delivered to ${data.targetUserId}`);
+          break;
+        }
+      }
+    }
+  });
+
+  socket.on('voice-speaking', (data: { roomId: string; userId: string; isSpeaking: boolean }) => {
+    socket.to(data.roomId).emit('voice-speaking', {
+      userId: data.userId,
+      isSpeaking: data.isSpeaking
+    });
+  });
+
+  socket.on('voice-mute', (data: { roomId: string; userId: string; isMuted: boolean }) => {
+    socket.to(data.roomId).emit('voice-mute', {
+      userId: data.userId,
+      isMuted: data.isMuted
+    });
+  });
+
   socket.on('disconnect', async (reason) => {
     console.log(`User disconnected: ${socket.id}, reason: ${reason}`);
     
     if (currentRoomId && currentUserId) {
+      roomManager.removeUserFromVoiceChat(currentRoomId, currentUserId);
+      
+      socket.to(currentRoomId).emit('voice-user-left', {
+        userId: currentUserId
+      });
+      
       await roomManager.removeUserFromRoom(currentRoomId, currentUserId);
       socket.to(currentRoomId).emit('user-left', currentUserId);
     }

@@ -13,6 +13,7 @@ interface UseSocketProps {
   onDrawingEnd: (element: DrawingElement) => void;
   onCursorUpdate: (data: { userId: string; x: number; y: number }) => void;
   onElementsDeleted: (elementIds: string[]) => void;
+  onVoiceRoomState?: (data: { voiceUsers: any[] }) => void;
 }
 
 export const useSocket = ({
@@ -25,24 +26,33 @@ export const useSocket = ({
   onDrawingUpdate,
   onDrawingEnd,
   onCursorUpdate,
-  onElementsDeleted
+  onElementsDeleted,
+  onVoiceRoomState
 }: UseSocketProps) => {
   const socketRef = useRef<Socket | null>(null);
   const isConnectedRef = useRef(false);
+  const hasJoinedRef = useRef(false);
 
   useEffect(() => {
+    if (socketRef.current) return;
+
     const socket = io('http://localhost:3001');
     socketRef.current = socket;
 
     socket.on('connect', () => {
       console.log('Connected to server');
       isConnectedRef.current = true;
-      socket.emit('join-room', { roomId, userName });
+      
+      if (!hasJoinedRef.current) {
+        socket.emit('join-room', { roomId, userName });
+        hasJoinedRef.current = true;
+      }
     });
 
     socket.on('disconnect', () => {
       console.log('Disconnected from server');
       isConnectedRef.current = false;
+      hasJoinedRef.current = false;
     });
 
     socket.on('room-state', onRoomState);
@@ -53,11 +63,19 @@ export const useSocket = ({
     socket.on('drawing-end', onDrawingEnd);
     socket.on('cursor-update', onCursorUpdate);
     socket.on('elements-deleted', onElementsDeleted);
+    
+    if (onVoiceRoomState) {
+      socket.on('voice-room-state', onVoiceRoomState);
+    }
 
     return () => {
-      socket.disconnect();
+      hasJoinedRef.current = false;
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     };
-  }, [roomId, userName]);
+  }, []);
 
   const emitDrawingStart = useCallback((element: DrawingElement) => {
     if (socketRef.current && isConnectedRef.current) {
@@ -90,6 +108,7 @@ export const useSocket = ({
   }, [roomId]);
 
   return {
+    socket: socketRef.current,
     emitDrawingStart,
     emitDrawingUpdate,
     emitDrawingEnd,

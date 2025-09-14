@@ -11,13 +11,18 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.13",
+    "@types/simple-peer": "^9.11.8",
     "konva": "^10.0.2",
     "lucide-react": "^0.543.0",
+    "process": "^0.11.10",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-konva": "^19.0.10",
+    "simple-peer": "^9.11.1",
     "socket.io-client": "^4.8.1",
-    "tailwindcss": "^4.1.13"
+    "stream-browserify": "^3.0.0",
+    "tailwindcss": "^4.1.13",
+    "util": "^0.12.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",

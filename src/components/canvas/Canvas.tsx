@@ -7,6 +7,7 @@ import { TextInputOverlay } from './TextInput.tsx';
 import { CanvasElements } from './CanvasElements.tsx';
 import { useSocket } from '../../hooks/useSocket'; 
 import { UserCursors } from './UserCursors';
+import { VoiceChat } from '../VoiceChat';
 import { Copy, LogOut } from 'lucide-react';
 
 interface WhiteboardProps {
@@ -40,12 +41,14 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
   const [isConnected, setIsConnected] = useState(false);
   const [remoteElements, setRemoteElements] = useState<DrawingElement[]>([]);
   const [copied, setCopied] = useState(false);
+  const [existingVoiceUsers, setExistingVoiceUsers] = useState<any[]>([]);
 
   const stageRef = useRef<Konva.Stage>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastCursorUpdate = useRef(0);
 
   const {
+    socket, 
     emitDrawingStart,
     emitDrawingUpdate,
     emitDrawingEnd,
@@ -60,6 +63,10 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
       setViewport(data.viewport);
       setBackgroundColor(data.backgroundColor);
       setIsConnected(true);
+      
+      if (data.voiceUsers) {
+        setExistingVoiceUsers(data.voiceUsers);
+      }
     },
     onUserJoined: (user) => {
       setConnectedUsers(prev => new Map(prev.set(user.id, user)));
@@ -100,6 +107,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
     },
     onElementsDeleted: (elementIds) => {
       setElements(prev => prev.filter(el => !elementIds.includes(el.id)));
+    },
+    onVoiceRoomState: (data) => {
+      setExistingVoiceUsers(data.voiceUsers);
     }
   });
 
@@ -742,7 +752,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
         </button>
       </div>
 
-      <div className="fixed top-2 right-5 z-[10001] bg-white/95 backdrop-blur-md rounded-2xl px-5 py-3 border border-white/20 flex items-center gap-3 font-inter ">
+      <div className="fixed top-2 right-5 z-[10001] bg-white/95 backdrop-blur-md rounded-2xl px-5 py-3 border border-white/20 flex items-center gap-3 font-inter">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
             <div className="flex items-center">
@@ -922,6 +932,15 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
           />
         </Stage>
       </div>
+
+      <VoiceChat
+        socket={socket}
+        roomId={roomId}
+        userId={currentUserId}
+        userName={userName}
+        userColor={connectedUsers.get(currentUserId)?.color || '#6b7280'}
+        isConnected={isConnected}
+      />
     </>
   );
 };

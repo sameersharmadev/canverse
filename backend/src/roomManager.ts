@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export class RoomManager {
   private rooms: Map<string, RoomState> = new Map();
+  private voiceUsers: Map<string, Set<string>> = new Map();
 
   async getRoomState(roomId: string): Promise<RoomState> {
     let room = this.rooms.get(roomId);
@@ -130,5 +131,25 @@ export class RoomManager {
 
   hasRoom(roomId: string): boolean {
     return this.rooms.has(roomId);
+  }
+
+  addUserToVoiceChat(roomId: string, userId: string): void {
+    if (!this.voiceUsers.has(roomId)) {
+      this.voiceUsers.set(roomId, new Set());
+    }
+    this.voiceUsers.get(roomId)!.add(userId);
+  }
+
+  removeUserFromVoiceChat(roomId: string, userId: string): void {
+    if (this.voiceUsers.has(roomId)) {
+      this.voiceUsers.get(roomId)!.delete(userId);
+      if (this.voiceUsers.get(roomId)!.size === 0) {
+        this.voiceUsers.delete(roomId);
+      }
+    }
+  }
+
+  getVoiceUsers(roomId: string): string[] {
+    return Array.from(this.voiceUsers.get(roomId) || new Set());
   }
 }
