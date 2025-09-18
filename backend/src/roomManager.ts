@@ -12,7 +12,9 @@ export class RoomManager {
       try {
         const redisData = await redisClient.get(`room:${roomId}`);
         if (redisData) {
-          const parsed = JSON.parse(redisData);
+          const parsed = JSON.parse(
+            typeof redisData === 'string' ? redisData : redisData.toString()
+          );
           room = {
             ...parsed,
             users: new Map(parsed.users || [])
