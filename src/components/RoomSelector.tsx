@@ -8,7 +8,8 @@ interface RoomSelectorProps {
 
 const checkRoomExists = async (roomId: string) => {
   try {
-    const res = await fetch(`http://localhost:3001/rooms/${roomId}/info`);
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+    const res = await fetch(`${backendUrl}/rooms/${roomId}/info`);
     if (!res.ok) return false;
     const data = await res.json();
     return !!data.roomId;
