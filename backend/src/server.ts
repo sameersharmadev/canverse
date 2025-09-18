@@ -13,9 +13,16 @@ dotenv.config();
 
 const app = express();
 const server = createServer(app);
+
+const allowedOrigins = [
+  'https://canverse-six.vercel.app',
+  'https://canverse.sameersharma.me',
+  'https://sameersharma.me'
+];
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
+    origin: allowedOrigins,
     methods: ["GET", "POST"]
   }
 });
@@ -25,7 +32,7 @@ const voiceChatManager = new VoiceChatManager(io, roomManager);
 const drawingManager = new DrawingManager(roomManager);
 const roomEventManager = new RoomEventManager(roomManager);
 
-app.use(cors());
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 app.get('/health', (req: Request, res: Response) => {
