@@ -1,3 +1,5 @@
+export type Tool = 'pen' | 'eraser' | 'rectangle' | 'circle' | 'arrow' | 'text' | 'line' | 'select' | 'pan';
+
 export interface DrawingElement {
   id: string;
   type: 'pen' | 'eraser' | 'rectangle' | 'circle' | 'arrow' | 'text' | 'line';
@@ -15,6 +17,10 @@ export interface DrawingElement {
   strokeDashArray?: number[];
   isSelected?: boolean;
   fontSize?: number;
+  endX?: number;
+  endY?: number;
+  centerX?: number;
+  centerY?: number;
 }
 
 export interface SelectionBox {
@@ -24,20 +30,32 @@ export interface SelectionBox {
   height: number;
 }
 
-export type Tool = 'select' | 'pan' | 'pen' | 'eraser' | 'rectangle' | 'circle' | 'arrow' | 'text' | 'line';
-
-export interface CanvasState {
-  elements: DrawingElement[];
-  backgroundColor: string;
-  viewport?: { x: number; y: number; scale: number };
-  selectedElements?: string[];
-}
-
 export interface TextInput {
   id: string;
   x: number;
   y: number;
   text: string;
+}
+
+export interface Viewport {
+  x: number;
+  y: number;
+  scale: number;
+}
+
+export interface CanvasSize {
+  width: number;
+  height: number;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  color: string;
+  cursor?: {
+    x: number;
+    y: number;
+  };
 }
 
 export const COLOR_SWATCHES = [

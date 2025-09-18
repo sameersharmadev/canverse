@@ -8,7 +8,6 @@ export class RoomManager {
 
   async getRoomState(roomId: string): Promise<RoomState> {
     let room = this.rooms.get(roomId);
-    
     if (!room) {
       try {
         const redisData = await redisClient.get(`room:${roomId}`);
@@ -22,7 +21,6 @@ export class RoomManager {
       } catch (error) {
         console.error('Error getting room from Redis:', error);
       }
-      
       if (!room) {
         room = {
           id: roomId,
@@ -37,15 +35,12 @@ export class RoomManager {
       this.rooms.set(roomId, room);
       await this.saveRoomToRedis(roomId, room);
     }
-    
     return room;
   }
-
   async addUserToRoom(roomId: string, user: User): Promise<void> {
     const room = await this.getRoomState(roomId);
     room.users.set(user.id, user);
     room.lastActivity = Date.now();
-    
     this.rooms.set(roomId, room);
     await this.saveRoomToRedis(roomId, room);
   }
@@ -75,7 +70,6 @@ export class RoomManager {
     const room = await this.getRoomState(roomId);
     room.elements.push(element);
     room.lastActivity = Date.now();
-    
     this.rooms.set(roomId, room);
     await this.saveRoomToRedis(roomId, room);
   }

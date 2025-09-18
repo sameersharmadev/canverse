@@ -43,13 +43,15 @@ export const CanvasElements: React.FC<CanvasElementsProps> = ({
     };
 
     const commonProps = {
-      id: element.id,
+      id: element.id, 
       draggable: isDraggable,
       onDragEnd: handleDragEnd,
       onDragStart: handleDragStart,
       onMouseDown: handleMouseDown,
       stroke: isSelected ? '#3b82f6' : element.stroke,
       strokeWidth: isSelected ? (element.strokeWidth || 1) + 2 : element.strokeWidth,
+      fill: element.fill,
+      listening: tool === 'select',
     };
 
     switch (element.type) {
@@ -86,7 +88,6 @@ export const CanvasElements: React.FC<CanvasElementsProps> = ({
             y={element.y}
             width={element.width}
             height={element.height}
-            fill={element.fill}
           />
         );
       case 'circle':
@@ -97,7 +98,6 @@ export const CanvasElements: React.FC<CanvasElementsProps> = ({
             x={element.x}
             y={element.y}
             radius={element.radius}
-            fill={element.fill}
           />
         );
       case 'arrow':

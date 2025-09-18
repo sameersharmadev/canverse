@@ -29,7 +29,7 @@ export const useVoiceChat = ({
   isConnected
 }: UseVoiceChatProps) => {
   const [isInCall, setIsInCall] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false); // start unmuted
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceUsers, setVoiceUsers] = useState<VoiceUser[]>([]);
   const [error, setError] = useState<string>('');
@@ -126,7 +126,7 @@ export const useVoiceChat = ({
       
       const audioTrack = stream.getAudioTracks()[0];
       if (audioTrack) {
-        audioTrack.enabled = false;
+        audioTrack.enabled = true; // enable mic by default
       }
       
       initializeAudioAnalysis(stream);
@@ -250,21 +250,30 @@ export const useVoiceChat = ({
     console.log('Leaving call...');
     hasJoinedVoiceRef.current = false;
     speakingDetectionRef.current = false;
-    
+
+    // Stop local stream
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
       localStreamRef.current = null;
     }
 
+    // Close audio context
     if (audioContextRef.current) {
       audioContextRef.current.close();
       audioContextRef.current = null;
     }
     analyserRef.current = null;
 
+    // Destroy all peers and audio elements
     peersRef.current.forEach((peer, targetUserId) => {
-      cleanupPeer(targetUserId);
+      peer.destroy();
     });
+    peersRef.current.clear();
+    audioElementsRef.current.forEach(audio => {
+      audio.pause();
+      audio.srcObject = null;
+    });
+    audioElementsRef.current.clear();
 
     setIsInCall(false);
     setIsSpeaking(false);
@@ -277,7 +286,7 @@ export const useVoiceChat = ({
         userId
       });
     }
-  }, [socket, isConnected, roomId, userId, cleanupPeer]);
+  }, [socket, isConnected, roomId, userId]);
 
   const toggleMute = useCallback(() => {
     if (localStreamRef.current) {
@@ -390,8 +399,16 @@ export const useVoiceChat = ({
         isSpeaking: false,
         lastSpeakTime: 0
       }));
-      console.log('Setting voice users from room state:', users);
       setVoiceUsers(users);
+
+      // Create peers for existing users if in call
+      if (isInCall && localStreamRef.current && hasJoinedVoiceRef.current) {
+        users.forEach(user => {
+          if (user.id !== userId) {
+            createPeer(user.id, true, localStreamRef.current!);
+          }
+        });
+      }
     };
 
     socket.on('voice-user-joined', handleVoiceUserJoined);
