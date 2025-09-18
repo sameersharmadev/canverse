@@ -30,8 +30,8 @@ export interface SelectionBox {
   y: number;
   width: number;
   height: number;
-  startX?: number; // <-- add this
-  startY?: number; // <-- add this
+  startX?: number; 
+  startY?: number; 
 }
 
 export interface TextInput {

@@ -29,7 +29,7 @@ export const useVoiceChat = ({
   isConnected
 }: UseVoiceChatProps) => {
   const [isInCall, setIsInCall] = useState(false);
-  const [isMuted, setIsMuted] = useState(false); // start unmuted
+  const [isMuted, setIsMuted] = useState(false); 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceUsers, setVoiceUsers] = useState<VoiceUser[]>([]);
   const [error, setError] = useState<string>('');
@@ -126,7 +126,7 @@ export const useVoiceChat = ({
       
       const audioTrack = stream.getAudioTracks()[0];
       if (audioTrack) {
-        audioTrack.enabled = true; // enable mic by default
+        audioTrack.enabled = true; 
       }
       
       initializeAudioAnalysis(stream);
@@ -251,20 +251,17 @@ export const useVoiceChat = ({
     hasJoinedVoiceRef.current = false;
     speakingDetectionRef.current = false;
 
-    // Stop local stream
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
       localStreamRef.current = null;
     }
 
-    // Close audio context
     if (audioContextRef.current) {
       audioContextRef.current.close();
       audioContextRef.current = null;
     }
     analyserRef.current = null;
 
-    // Destroy all peers and audio elements
     peersRef.current.forEach((peer, targetUserId) => {
       peer.destroy();
     });
@@ -401,7 +398,6 @@ export const useVoiceChat = ({
       }));
       setVoiceUsers(users);
 
-      // Create peers for existing users if in call
       if (isInCall && localStreamRef.current && hasJoinedVoiceRef.current) {
         users.forEach(user => {
           if (user.id !== userId) {

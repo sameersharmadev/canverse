@@ -195,7 +195,6 @@ export const RoomSelector: React.FC<RoomSelectorProps> = ({ onJoinRoom }) => {
 
         {/* Right Background Section */}
         <div className="w-1/2 min-h-screen">
-          {/* This section shows the background image */}
         </div>
       </div>
     );
@@ -270,7 +269,6 @@ export const RoomSelector: React.FC<RoomSelectorProps> = ({ onJoinRoom }) => {
 
       {/* Right Background Section */}
       <div className="w-1/2 min-h-screen">
-        {/* This section shows the background image */}
       </div>
     </div>
   );

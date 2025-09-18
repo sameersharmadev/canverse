@@ -1,5 +1,6 @@
 import React from 'react';
 import { Copy, LogOut } from 'lucide-react';
+import { Toast } from '../Toast';
 
 interface RoomHeaderProps {
   roomId: string;
@@ -24,6 +25,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
 
   return (
     <>
+      <Toast message="Link copied!" visible={copied} />
       <div className="fixed top-2 left-5 z-[10001] bg-white/95 backdrop-blur-md rounded-2xl px-5 py-3 border border-white/20 flex items-center gap-3 font-inter text-sm font-medium">
         <span
           className="text-gray-800 cursor-pointer select-none transition-all duration-200 hover:text-blue-600"

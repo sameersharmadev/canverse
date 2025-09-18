@@ -38,7 +38,6 @@ export class RoomEventManager {
       await this.roomManager.addUserToRoom(roomId, user);
       const roomState = await this.roomManager.getRoomState(roomId);
       
-      // Get voice users for initial state
       const voiceUsers = this.roomManager.getVoiceUsers(roomId).map(id => {
         const voiceUser = roomState.users.get(id);
         return {
@@ -48,7 +47,6 @@ export class RoomEventManager {
         };
       });
       
-      // Send room state to the joining user
       socket.emit('room-state', {
         elements: roomState.elements,
         users: Array.from(roomState.users.values()),
@@ -58,7 +56,6 @@ export class RoomEventManager {
         voiceUsers
       });
       
-      // Notify other users about the new join
       socket.to(roomId).emit('user-joined', user);
       console.log(`User ${userName} (${currentUserId}) joined room ${roomId}`);
       
