@@ -15,7 +15,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: process.env.CLIENT_URL,
     methods: ["GET", "POST"]
   }
 });
@@ -112,6 +112,7 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || '127.0.0.1';
 
 const startServer = async () => {
   try {
@@ -119,8 +120,18 @@ const startServer = async () => {
     
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
-      console.log(`Health check: http://localhost:${PORT}/health`);
+      console.log(`Health check: http://${HOST}/health`);
     });
+    setInterval(() => {
+      fetch(`http://${HOST}/health`)
+        .then(() => {
+          console.log('Keep-alive ping sent');
+        })
+        .catch(() => {
+          console.log('Keep-alive ping failed');
+        });
+    }, 2 * 60 * 1000); 
+
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
