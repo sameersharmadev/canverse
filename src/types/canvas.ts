@@ -21,6 +21,8 @@ export interface DrawingElement {
   endY?: number;
   centerX?: number;
   centerY?: number;
+  startX?: number; 
+  startY?: number; 
 }
 
 export interface SelectionBox {
@@ -28,6 +30,8 @@ export interface SelectionBox {
   y: number;
   width: number;
   height: number;
+  startX?: number; // <-- add this
+  startY?: number; // <-- add this
 }
 
 export interface TextInput {
