@@ -16,6 +16,7 @@ import { RoomHeader } from './RoomHeader';
 import { VoiceChat } from '../VoiceChat';
 import { SelectionBox } from './SelectionBox';
 import { ElementTransformer } from './ElementTransformer';
+import type { DrawingElement } from '../../types/canvas';
 
 interface WhiteboardProps {
   roomId: string;
