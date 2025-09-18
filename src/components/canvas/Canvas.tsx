@@ -17,6 +17,7 @@ interface WhiteboardProps {
 }
 
 export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeaveRoom }) => {
+  // Drawing state
   const [tool, setTool] = useState<Tool>('pen');
   const [elements, setElements] = useState<DrawingElement[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -24,25 +25,31 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
   const [strokeWidth, setStrokeWidth] = useState(2);
   const [currentElement, setCurrentElement] = useState<DrawingElement | null>(null);
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
-  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
   const [textInput, setTextInput] = useState<TextInput | null>(null);
 
+  // Canvas state
   const [viewport, setViewport] = useState({ x: 0, y: 0, scale: 1 });
+  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
 
-  const [selectedElements, setSelectedElements] = useState<string[]>([]);
-  const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
-  const [isSelecting, setIsSelecting] = useState(false);
+  // Selection state - unified
+  const [selection, setSelection] = useState<{
+    elements: string[];
+    box: SelectionBox | null;
+    isActive: boolean;
+  }>({ elements: [], box: null, isActive: false });
+
   const [transformerRef, setTransformerRef] = useState<Konva.Transformer | null>(null);
 
+  // Collaboration state
   const [connectedUsers, setConnectedUsers] = useState<Map<string, any>>(new Map());
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
   const [remoteElements, setRemoteElements] = useState<DrawingElement[]>([]);
   const [copied, setCopied] = useState(false);
-  const [existingVoiceUsers, setExistingVoiceUsers] = useState<any[]>([]);
 
+  // Refs
   const stageRef = useRef<Konva.Stage>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastCursorUpdate = useRef(0);
@@ -53,7 +60,8 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
     emitDrawingUpdate,
     emitDrawingEnd,
     emitCursorMove,
-    emitElementsDeleted  } = useSocket({
+    emitElementsDeleted
+  } = useSocket({
     roomId,
     userName,
     onRoomState: (data) => {
@@ -63,10 +71,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
       setViewport(data.viewport);
       setBackgroundColor(data.backgroundColor);
       setIsConnected(true);
-      
-      if (data.voiceUsers) {
-        setExistingVoiceUsers(data.voiceUsers);
-      }
     },
     onUserJoined: (user) => {
       setConnectedUsers(prev => new Map(prev.set(user.id, user)));
@@ -74,10 +78,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
     onUserLeft: (userId) => {
       setConnectedUsers(prev => {
         const newUsers = new Map(prev);
-        const userExists = newUsers.has(userId);
-        if (userExists) {
-          newUsers.delete(userId);
-        }
+        newUsers.delete(userId);
         return newUsers;
       });
     },
@@ -107,9 +108,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
     },
     onElementsDeleted: (elementIds) => {
       setElements(prev => prev.filter(el => !elementIds.includes(el.id)));
-    },
-    onVoiceRoomState: (data) => {
-      setExistingVoiceUsers(data.voiceUsers);
     }
   });
 
@@ -130,6 +128,79 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
       lastCursorUpdate.current = now;
     }
   }, [emitCursorMove, screenToWorld]);
+
+  // Hit detection utilities
+  const hitTesters = {
+    rectangle: (element: DrawingElement, pos: { x: number; y: number }) => {
+      const x = element.x || 0;
+      const y = element.y || 0;
+      const width = element.width || 0;
+      const height = element.height || 0;
+      return pos.x >= x && pos.x <= x + width && pos.y >= y && pos.y <= y + height;
+    },
+    circle: (element: DrawingElement, pos: { x: number; y: number }) => {
+      const centerX = element.x || 0;
+      const centerY = element.y || 0;
+      const radius = element.radius || 0;
+      const distance = Math.sqrt((pos.x - centerX) ** 2 + (pos.y - centerY) ** 2);
+      return distance <= radius;
+    },
+    text: (element: DrawingElement, pos: { x: number; y: number }) => {
+      const x = element.x || 0;
+      const y = element.y || 0;
+      const textWidth = (element.text || '').length * 12;
+      const textHeight = 20;
+      return pos.x >= x && pos.x <= x + textWidth && pos.y >= y && pos.y <= y + textHeight;
+    },
+    pen: (element: DrawingElement, pos: { x: number; y: number }) => {
+      const points = element.points || [];
+      for (let j = 0; j < points.length - 2; j += 2) {
+        const distance = distanceToLineSegment(pos.x, pos.y, points[j], points[j + 1], points[j + 2], points[j + 3]);
+        if (distance <= (element.strokeWidth || 2) + 5) return true;
+      }
+      return false;
+    },
+    eraser: (element: DrawingElement, pos: { x: number; y: number }) => hitTesters.pen(element, pos),
+    line: (element: DrawingElement, pos: { x: number; y: number }) => hitTesters.pen(element, pos),
+    arrow: (element: DrawingElement, pos: { x: number; y: number }) => {
+      const points = element.points || [];
+      if (points.length >= 4) {
+        const distance = distanceToLineSegment(pos.x, pos.y, points[0], points[1], points[2], points[3]);
+        return distance <= (element.strokeWidth || 2) + 5;
+      }
+      return false;
+    }
+  };
+
+  const distanceToLineSegment = (px: number, py: number, x1: number, y1: number, x2: number, y2: number) => {
+    const A = px - x1;
+    const B = py - y1;
+    const C = x2 - x1;
+    const D = y2 - y1;
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+
+    if (lenSq === 0) return Math.sqrt(A * A + B * B);
+
+    let param = Math.max(0, Math.min(1, dot / lenSq));
+    const xx = x1 + param * C;
+    const yy = y1 + param * D;
+    const dx = px - xx;
+    const dy = py - yy;
+
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const getElementAtPosition = (worldPos: { x: number; y: number }): DrawingElement | null => {
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const el = elements[i];
+      const tester = hitTesters[el.type as keyof typeof hitTesters];
+      if (tester && tester(el, worldPos)) {
+        return el;
+      }
+    }
+    return null;
+  };
 
   const isElementInSelection = (element: DrawingElement, selectionBox: SelectionBox): boolean => {
     if (element.type === 'pen' || element.type === 'eraser' || element.type === 'line') {
@@ -165,7 +236,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
     } else if (element.type === 'text') {
       const textX = element.x || 0;
       const textY = element.y || 0;
-
       return textX >= selectionBox.x && textX <= selectionBox.x + selectionBox.width &&
         textY >= selectionBox.y && textY <= selectionBox.y + selectionBox.height;
     } else if (element.type === 'arrow') {
@@ -178,13 +248,11 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
             y2 >= selectionBox.y && y2 <= selectionBox.y + selectionBox.height);
       }
     }
-
     return false;
   };
 
   const clearSelection = () => {
-    setSelectedElements([]);
-    setSelectionBox(null);
+    setSelection({ elements: [], box: null, isActive: false });
     if (transformerRef) {
       transformerRef.nodes([]);
     }
@@ -192,107 +260,20 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
 
   const selectElementsInBox = (box: SelectionBox) => {
     const selected: string[] = [];
-
     elements.forEach(element => {
       if (isElementInSelection(element, box)) {
         selected.push(element.id);
       }
     });
-
-    setSelectedElements(selected);
+    setSelection(prev => ({ ...prev, elements: selected }));
   };
 
-  const distanceToLineSegment = (px: number, py: number, x1: number, y1: number, x2: number, y2: number) => {
-    const A = px - x1;
-    const B = py - y1;
-    const C = x2 - x1;
-    const D = y2 - y1;
-
-    const dot = A * C + B * D;
-    const lenSq = C * C + D * D;
-
-    if (lenSq === 0) return Math.sqrt(A * A + B * B);
-
-    let param = dot / lenSq;
-
-    if (param < 0) {
-      param = 0;
-    } else if (param > 1) {
-      param = 1;
-    }
-
-    const xx = x1 + param * C;
-    const yy = y1 + param * D;
-
-    const dx = px - xx;
-    const dy = py - yy;
-
-    return Math.sqrt(dx * dx + dy * dy);
-  };
-
-  const getElementAtPosition = (worldPos: { x: number; y: number }): DrawingElement | null => {
-    for (let i = elements.length - 1; i >= 0; i--) {
-      const el = elements[i];
-
-      if (el.type === 'rectangle') {
-        const x = el.x || 0;
-        const y = el.y || 0;
-        const width = el.width || 0;
-        const height = el.height || 0;
-        if (worldPos.x >= x && worldPos.x <= x + width &&
-          worldPos.y >= y && worldPos.y <= y + height) {
-          return el;
-        }
-      } else if (el.type === 'circle') {
-        const centerX = el.x || 0;
-        const centerY = el.y || 0;
-        const radius = el.radius || 0;
-        const distance = Math.sqrt((worldPos.x - centerX) ** 2 + (worldPos.y - centerY) ** 2);
-        if (distance <= radius) {
-          return el;
-        }
-      } else if (el.type === 'text') {
-        const x = el.x || 0;
-        const y = el.y || 0;
-        const textWidth = (el.text || '').length * 12;
-        const textHeight = 20;
-        if (worldPos.x >= x && worldPos.x <= x + textWidth &&
-          worldPos.y >= y && worldPos.y <= y + textHeight) {
-          return el;
-        }
-      } else if (el.type === 'pen' || el.type === 'eraser' || el.type === 'line') {
-        const points = el.points || [];
-        for (let j = 0; j < points.length - 2; j += 2) {
-          const x1 = points[j];
-          const y1 = points[j + 1];
-          const x2 = points[j + 2];
-          const y2 = points[j + 3];
-
-          const distance = distanceToLineSegment(worldPos.x, worldPos.y, x1, y1, x2, y2);
-          if (distance <= (el.strokeWidth || 2) + 5) {
-            return el;
-          }
-        }
-      } else if (el.type === 'arrow') {
-        const points = el.points || [];
-        if (points.length >= 4) {
-          const distance = distanceToLineSegment(worldPos.x, worldPos.y, points[0], points[1], points[2], points[3]);
-          if (distance <= (el.strokeWidth || 2) + 5) {
-            return el;
-          }
-        }
-      }
-    }
-    return null;
-  };
-
+  // Canvas size effect
   useEffect(() => {
     const updateCanvasSize = () => {
       if (containerRef.current) {
-        const container = containerRef.current;
-        const width = container.clientWidth;
-        const height = container.clientHeight;
-        setCanvasSize({ width, height });
+        const { clientWidth, clientHeight } = containerRef.current;
+        setCanvasSize({ width: clientWidth, height: clientHeight });
       }
     };
 
@@ -302,21 +283,20 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
   }, []);
 
   const deleteSelectedElements = useCallback(() => {
-    if (selectedElements.length > 0) {
-      const newElements = elements.filter(el => !selectedElements.includes(el.id));
-      setElements(newElements);
+    if (selection.elements.length > 0) {
+      setElements(prev => prev.filter(el => !selection.elements.includes(el.id)));
       clearSelection();
-      emitElementsDeleted(selectedElements); 
+      emitElementsDeleted(selection.elements); 
     }
-  }, [selectedElements, elements, emitElementsDeleted]);
+  }, [selection.elements, emitElementsDeleted]);
 
+  // Transformer effect
   useEffect(() => {
     if (transformerRef && stageRef.current) {
-      if (selectedElements.length > 0) {
-        const selectedNodes = selectedElements.map(id => {
-          const node = stageRef.current!.findOne(`#${id}`);
-          return node;
-        }).filter((node): node is Konva.Node => !!node);
+      if (selection.elements.length > 0) {
+        const selectedNodes = selection.elements.map(id => 
+          stageRef.current!.findOne(`#${id}`)
+        ).filter((node): node is Konva.Node => !!node);
 
         if (selectedNodes.length > 0) {
           transformerRef.nodes(selectedNodes);
@@ -327,17 +307,16 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
         transformerRef.getLayer()?.batchDraw();
       }
     }
-  }, [selectedElements, transformerRef, elements]);
+  }, [selection.elements, transformerRef, elements]);
 
+  // Keyboard shortcuts effect
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) return;
 
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedElements.length > 0) {
-          e.preventDefault();
-          deleteSelectedElements();
-        }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selection.elements.length > 0) {
+        e.preventDefault();
+        deleteSelectedElements();
       }
 
       if (e.code === 'Space' && tool !== 'pan' && !isPanning) {
@@ -350,15 +329,8 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
       }
 
       const toolShortcuts: { [key: string]: Tool } = {
-        'v': 'select',
-        'w': 'pan',
-        'p': 'pen',
-        'e': 'eraser',
-        'l': 'line',
-        'r': 'rectangle',
-        'c': 'circle',
-        'a': 'arrow',
-        't': 'text'
+        'v': 'select', 'w': 'pan', 'p': 'pen', 'e': 'eraser',
+        'l': 'line', 'r': 'rectangle', 'c': 'circle', 'a': 'arrow', 't': 'text'
       };
 
       const shortcutTool = toolShortcuts[e.key.toLowerCase()];
@@ -380,12 +352,11 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [tool, isPanning, selectedElements, elements, deleteSelectedElements]);
+  }, [tool, isPanning, selection.elements, deleteSelectedElements]);
 
   const handleMouseDown = (e: any) => {
     const stage = e.target.getStage();
     const pointerPos = stage.getPointerPosition();
-
     if (!pointerPos) return;
 
     if (tool === 'pan') {
@@ -399,46 +370,41 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
     if (tool === 'select') {
       const clickedOnTransformer = e.target.getClassName() === 'Transformer' ||
         e.target.getParent()?.getClassName() === 'Transformer';
-
-      if (clickedOnTransformer) {
-        return;
-      }
-
-      const clickedOnStage = e.target === e.target.getStage();
+      if (clickedOnTransformer) return;
 
       const clickedElement = getElementAtPosition(worldPos);
 
       if (clickedElement) {
-        if (selectedElements.includes(clickedElement.id)) {
-          return;
+        if (selection.elements.includes(clickedElement.id)) return;
+        
+        if (e.evt && (e.evt.ctrlKey || e.evt.metaKey)) {
+          setSelection(prev => ({ 
+            ...prev, 
+            elements: [...prev.elements, clickedElement.id] 
+          }));
         } else {
-          if (e.evt && (e.evt.ctrlKey || e.evt.metaKey)) {
-            setSelectedElements(prev => [...prev, clickedElement.id]);
-          } else {
-            setSelectedElements([clickedElement.id]);
-          }
-          return;
+          setSelection(prev => ({ ...prev, elements: [clickedElement.id] }));
         }
+        return;
       } else {
+        const clickedOnStage = e.target === e.target.getStage();
         if (clickedOnStage || e.target.getClassName() === 'Rect') {
-          if (selectedElements.length > 0) {
+          if (selection.elements.length > 0) {
             clearSelection();
             return;
           }
         }
 
-        setIsSelecting(true);
-        setSelectionBox({
-          x: worldPos.x,
-          y: worldPos.y,
-          width: 0,
-          height: 0
-        });
+        setSelection(prev => ({
+          ...prev,
+          isActive: true,
+          box: { x: worldPos.x, y: worldPos.y, width: 0, height: 0 }
+        }));
       }
       return;
     }
 
-    if (selectedElements.length > 0) {
+    if (selection.elements.length > 0) {
       clearSelection();
     }
 
@@ -449,88 +415,77 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
 
     setIsDrawing(true);
 
-    if (tool === 'pen' || tool === 'eraser') {
-      const newElement: DrawingElement = {
-        id: generateId(),
-        type: tool,
-        points: [worldPos.x, worldPos.y],
-        stroke: tool === 'pen' ? currentColor : 'transparent',
-        strokeWidth: tool === 'eraser' ? strokeWidth * 2 : strokeWidth,
-        globalCompositeOperation: tool === 'eraser' ? 'destination-out' : 'source-over',
-      };
-      setCurrentElement(newElement);
-      emitDrawingStart(newElement); 
-    } else if (tool === 'rectangle') {
-      const newElement: DrawingElement = {
-        id: generateId(),
-        type: 'rectangle',
-        x: worldPos.x,
-        y: worldPos.y,
-        width: 0,
-        height: 0,
-        stroke: currentColor,
-        strokeWidth,
-        fill: 'transparent',
-      };
-      setCurrentElement(newElement);
-      emitDrawingStart(newElement); 
-    } else if (tool === 'circle') {
-      const newElement: DrawingElement = {
-        id: generateId(),
-        type: 'circle',
-        x: worldPos.x,
-        y: worldPos.y,
-        radius: 0,
-        stroke: currentColor,
-        strokeWidth,
-        fill: 'transparent',
-      };
-      setCurrentElement(newElement);
-      emitDrawingStart(newElement);
-    } else if (tool === 'arrow') {
-      const newElement: DrawingElement = {
-        id: generateId(),
-        type: 'arrow',
-        points: [worldPos.x, worldPos.y, worldPos.x, worldPos.y],
-        stroke: currentColor,
-        strokeWidth,
-      };
-      setCurrentElement(newElement);
-      emitDrawingStart(newElement);
-    } else if (tool === 'line') {
-      const newElement: DrawingElement = {
-        id: generateId(),
-        type: 'line',
-        points: [worldPos.x, worldPos.y, worldPos.x, worldPos.y],
-        stroke: currentColor,
-        strokeWidth,
-      };
-      setCurrentElement(newElement);
-      emitDrawingStart(newElement);
-    } else if (tool === 'text') {
-      const stage = stageRef.current;
-      const container = containerRef.current;
+    // Create new element based on tool
+    const baseElement = {
+      id: generateId(),
+      stroke: currentColor,
+      strokeWidth: tool === 'eraser' ? strokeWidth * 2 : strokeWidth,
+    };
 
-      if (stage && container) {
-        const containerRect = container.getBoundingClientRect();
-        const screenX = containerRect.left + pointerPos.x;
-        const screenY = containerRect.top + pointerPos.y;
+    let newElement: DrawingElement;
 
-        setTextInput({
-          id: generateId(),
-          x: screenX,
-          y: screenY,
-          text: ''
-        });
-      }
-      setIsDrawing(false);
+    switch (tool) {
+      case 'pen':
+      case 'eraser':
+        newElement = {
+          ...baseElement,
+          type: tool,
+          points: [worldPos.x, worldPos.y],
+          stroke: tool === 'pen' ? currentColor : 'transparent',
+          globalCompositeOperation: tool === 'eraser' ? 'destination-out' : 'source-over',
+        };
+        break;
+      case 'rectangle':
+        newElement = {
+          ...baseElement,
+          type: 'rectangle',
+          x: worldPos.x,
+          y: worldPos.y,
+          width: 0,
+          height: 0,
+          fill: 'transparent',
+        };
+        break;
+      case 'circle':
+        newElement = {
+          ...baseElement,
+          type: 'circle',
+          x: worldPos.x,
+          y: worldPos.y,
+          radius: 0,
+          fill: 'transparent',
+        };
+        break;
+      case 'arrow':
+      case 'line':
+        newElement = {
+          ...baseElement,
+          type: tool,
+          points: [worldPos.x, worldPos.y, worldPos.x, worldPos.y],
+        };
+        break;
+      case 'text':
+        const stage = stageRef.current;
+        const container = containerRef.current;
+        if (stage && container) {
+          const containerRect = container.getBoundingClientRect();
+          const screenX = containerRect.left + pointerPos.x;
+          const screenY = containerRect.top + pointerPos.y;
+          setTextInput({ id: generateId(), x: screenX, y: screenY, text: '' });
+        }
+        setIsDrawing(false);
+        return;
+      default:
+        return;
     }
+
+    setCurrentElement(newElement);
+    emitDrawingStart(newElement);
   };
 
   const handleMouseMove = (e: any) => {
     const stage = e.target.getStage();
     const pointerPos = stage.getPointerPosition();
-
     if (!pointerPos) return;
 
     emitCursorPosition(pointerPos.x, pointerPos.y);
@@ -538,82 +493,73 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
     if (isPanning && tool === 'pan') {
       const deltaX = pointerPos.x - lastPanPoint.x;
       const deltaY = pointerPos.y - lastPanPoint.y;
-
       setViewport(prev => ({
         ...prev,
         x: prev.x + deltaX,
         y: prev.y + deltaY
       }));
-
       setLastPanPoint({ x: pointerPos.x, y: pointerPos.y });
       return;
     }
 
     const worldPos = screenToWorld(pointerPos.x, pointerPos.y);
 
-    if (isSelecting && selectionBox && tool === 'select') {
-      const updatedBox = {
-        ...selectionBox,
-        width: worldPos.x - selectionBox.x,
-        height: worldPos.y - selectionBox.y
-      };
-      setSelectionBox(updatedBox);
+    if (selection.isActive && selection.box && tool === 'select') {
+      setSelection(prev => ({
+        ...prev,
+        box: prev.box ? {
+          ...prev.box,
+          width: worldPos.x - prev.box.x,
+          height: worldPos.y - prev.box.y
+        } : null
+      }));
       return;
     }
 
     if (!isDrawing || !currentElement || tool === 'select') return;
 
-    if (tool === 'pen' || tool === 'eraser') {
-      const updatedElement = {
-        ...currentElement,
-        points: [...(currentElement.points || []), worldPos.x, worldPos.y],
-      };
-      setCurrentElement(updatedElement);
-      emitDrawingUpdate(updatedElement);
-    } else if (tool === 'rectangle') {
-      const updatedElement = {
-        ...currentElement,
-        width: worldPos.x - (currentElement.x || 0),
-        height: worldPos.y - (currentElement.y || 0),
-      };
-      setCurrentElement(updatedElement);
-      emitDrawingUpdate(updatedElement);
-    } else if (tool === 'circle') {
-      const radius = Math.sqrt(
-        Math.pow(worldPos.x - (currentElement.x || 0), 2) +
-        Math.pow(worldPos.y - (currentElement.y || 0), 2)
-      );
-      const updatedElement = {
-        ...currentElement,
-        radius,
-      };
-      setCurrentElement(updatedElement);
-      emitDrawingUpdate(updatedElement);
-    } else if (tool === 'arrow') {
-      const updatedElement = {
-        ...currentElement,
-        points: [
-          currentElement.points![0],
-          currentElement.points![1],
-          worldPos.x,
-          worldPos.y,
-        ],
-      };
-      setCurrentElement(updatedElement);
-      emitDrawingUpdate(updatedElement);
-    } else if (tool === 'line') {
-      const updatedElement = {
-        ...currentElement,
-        points: [
-          currentElement.points![0],
-          currentElement.points![1],
-          worldPos.x,
-          worldPos.y,
-        ],
-      };
-      setCurrentElement(updatedElement);
-      emitDrawingUpdate(updatedElement);
+    let updatedElement: DrawingElement;
+
+    switch (tool) {
+      case 'pen':
+      case 'eraser':
+        updatedElement = {
+          ...currentElement,
+          points: [...(currentElement.points || []), worldPos.x, worldPos.y],
+        };
+        break;
+      case 'rectangle':
+        updatedElement = {
+          ...currentElement,
+          width: worldPos.x - (currentElement.x || 0),
+          height: worldPos.y - (currentElement.y || 0),
+        };
+        break;
+      case 'circle':
+        const radius = Math.sqrt(
+          Math.pow(worldPos.x - (currentElement.x || 0), 2) +
+          Math.pow(worldPos.y - (currentElement.y || 0), 2)
+        );
+        updatedElement = { ...currentElement, radius };
+        break;
+      case 'arrow':
+      case 'line':
+        updatedElement = {
+          ...currentElement,
+          points: [
+            currentElement.points![0],
+            currentElement.points![1],
+            worldPos.x,
+            worldPos.y,
+          ],
+        };
+        break;
+      default:
+        return;
     }
+
+    setCurrentElement(updatedElement);
+    emitDrawingUpdate(updatedElement);
   };
 
   const handleMouseUp = () => {
@@ -622,27 +568,25 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
       return;
     }
 
-    if (isSelecting && selectionBox && tool === 'select') {
-      setIsSelecting(false);
-
+    if (selection.isActive && selection.box && tool === 'select') {
+      const box = selection.box;
       const normalizedBox = {
-        x: selectionBox.width < 0 ? selectionBox.x + selectionBox.width : selectionBox.x,
-        y: selectionBox.height < 0 ? selectionBox.y + selectionBox.height : selectionBox.y,
-        width: Math.abs(selectionBox.width),
-        height: Math.abs(selectionBox.height)
+        x: box.width < 0 ? box.x + box.width : box.x,
+        y: box.height < 0 ? box.y + box.height : box.y,
+        width: Math.abs(box.width),
+        height: Math.abs(box.height)
       };
 
       if (normalizedBox.width > 1 && normalizedBox.height > 1) {
         selectElementsInBox(normalizedBox);
       }
 
-      setSelectionBox(null);
+      setSelection(prev => ({ ...prev, box: null, isActive: false }));
       return;
     }
 
     if (currentElement && isDrawing && tool !== 'text' && tool !== 'select') {
-      const newElements = [...elements, currentElement];
-      setElements(newElements);
+      setElements(prev => [...prev, currentElement]);
       emitDrawingEnd(currentElement);
     }
     setIsDrawing(false);
@@ -667,7 +611,6 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
     const scaleBy = 1.05;
     const direction = e.evt.deltaY > 0 ? -1 : 1;
     const newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
-
     const clampedScale = Math.max(0.1, Math.min(3, newScale));
 
     setViewport({
@@ -697,9 +640,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
           fill: currentColor,
           fontSize: 20, 
         };
-        const newElements = [...elements, newElement];
-        setElements(newElements);
-
+        setElements(prev => [...prev, newElement]);
         emitDrawingEnd(newElement);
       }
     }
@@ -708,16 +649,14 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
 
   const handleElementDragEnd = (element: DrawingElement, newPosition: { x: number; y: number }) => {
     const updatedElement = { ...element, x: newPosition.x, y: newPosition.y };
-    const updatedElements = elements.map(el => el.id === element.id ? updatedElement : el);
-    setElements(updatedElements);
-
+    setElements(prev => prev.map(el => el.id === element.id ? updatedElement : el));
     emitDrawingUpdate(updatedElement);
   };
 
   const clearCanvas = () => {
     setElements([]);
     setBackgroundColor('#ffffff');
-    setSelectedElements([]);
+    clearSelection();
   };
 
   const roomUrl = `${window.location.origin}?room=${roomId}`;
@@ -731,6 +670,9 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
   const userList = Array.from(connectedUsers.values());
   const displayedUsers = userList.slice(0, 3);
   const extraUsersCount = Math.max(0, userList.length - 3);
+
+  // Combined elements for rendering
+  const allElements = [...elements, ...remoteElements];
 
   return (
     <>
@@ -773,10 +715,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
               )}
             </div>
             <span className="text-xs text-gray-600 font-medium ml-1">
-              {isConnected
-                ? `${connectedUsers.size} online`
-                : 'Connecting...'
-              }
+              {isConnected ? `${connectedUsers.size} online` : 'Connecting...'}
             </span>
           </div>
         </div>
@@ -799,7 +738,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
         setCurrentColor={setCurrentColor}
         strokeWidth={strokeWidth}
         setStrokeWidth={setStrokeWidth}
-        selectedElements={selectedElements}
+        selectedElements={selection.elements}
         onDelete={deleteSelectedElements}
         onClear={clearCanvas}
       />
@@ -845,20 +784,20 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId, userName, onLeav
               listening={false}
             />
             <CanvasElements
-              elements={[...elements, ...remoteElements]}
+              elements={allElements}
               currentElement={currentElement}
               tool={tool}
               canvasSize={canvasSize}
               onElementDragEnd={handleElementDragEnd}
-              selectedElements={selectedElements}
+              selectedElements={selection.elements}
             />
 
-            {selectionBox && tool === 'select' && (
+            {selection.box && tool === 'select' && (
               <Rect
-                x={selectionBox.width < 0 ? selectionBox.x + selectionBox.width : selectionBox.x}
-                y={selectionBox.height < 0 ? selectionBox.y + selectionBox.height : selectionBox.y}
-                width={Math.abs(selectionBox.width)}
-                height={Math.abs(selectionBox.height)}
+                x={selection.box.width < 0 ? selection.box.x + selection.box.width : selection.box.x}
+                y={selection.box.height < 0 ? selection.box.y + selection.box.height : selection.box.y}
+                width={Math.abs(selection.box.width)}
+                height={Math.abs(selection.box.height)}
                 stroke="#6366f1"
                 strokeWidth={1 / viewport.scale}
                 fill="rgba(99, 102, 241, 0.08)"

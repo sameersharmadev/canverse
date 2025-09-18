@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, ArrowRight, ArrowLeft, Link2 } from 'lucide-react';
+import background from '../assets/background_canverse.webp';
 
 interface RoomSelectorProps {
   onJoinRoom: (roomId: string, userName: string) => void;
@@ -93,14 +94,131 @@ export const RoomSelector: React.FC<RoomSelectorProps> = ({ onJoinRoom }) => {
 
   if (isJoinFlow) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-5">
-        <div className="bg-white rounded-2xl border border-gray-200 p-10 w-full max-w-md">
+      <div 
+        className="min-h-screen flex"
+        style={{
+          backgroundImage: `url(${background})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        {/* Left Form Section */}
+        <div className="w-1/2 min-h-screen bg-white flex items-center justify-center p-8">
+          <div className="w-full max-w-md">
+            <div className="mb-10">
+              <div className="flex items-center mb-5 gap-4">
+                <Link2 size={40} className="text-blue-600" />
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Join Room</h1>
+                  <p className="text-gray-600 text-sm">Enter your details to join the whiteboard</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-8">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Your Name
+              </label>
+              <input
+                type="text"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder="Enter your name"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-base outline-none focus:border-blue-500 transition-colors"
+                onKeyPress={(e) => e.key === 'Enter' && userName.trim() && roomInput.trim() && handleJoinRoom()}
+              />
+            </div>
+
+            <div className="mb-8">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Room ID or Link
+              </label>
+              <input
+                type="text"
+                value={roomInput}
+                onChange={(e) => setRoomInput(e.target.value)}
+                placeholder="Paste invite link or Room ID"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-base outline-none focus:border-blue-500 transition-colors font-mono"
+                onKeyPress={(e) => e.key === 'Enter' && userName.trim() && roomInput.trim() && handleJoinRoom()}
+              />
+              <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                Enter room ID or paste full invite link
+              </p>
+            </div>
+
+            {error && (
+              <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <button
+                onClick={handleJoinRoom}
+                disabled={!userName.trim() || !roomInput.trim() || isJoining}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                {isJoining ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Joining...
+                  </>
+                ) : (
+                  <>
+                    Join Room
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+              
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="px-4 bg-white text-gray-500 text-sm">or</span>
+                </div>
+              </div>
+              
+              <button
+                onClick={resetFlow}
+                className="w-full text-blue-600 py-3 px-4 rounded-lg font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 border-2 border-blue-200"
+              >
+                <ArrowLeft size={16} />
+                Back to Create
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Background Section */}
+        <div className="w-1/2 min-h-screen">
+          {/* This section shows the background image */}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      className="min-h-screen flex"
+      style={{
+        backgroundImage: `url(${background})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Left Form Section */}
+      <div className="w-1/2 min-h-screen bg-white flex items-center justify-center p-8">
+        <div className="w-full max-w-md">
           <div className="mb-10">
-            <div className="flex items-center justify-center mb-5 gap-4">
-              <Link2 size={40} className="text-blue-600 mr-4" />
+            <div className="flex items-center mb-5 gap-4">
+              <Users size={40} className="text-blue-600" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Join Room</h1>
-                <p className="text-gray-600 text-sm">Enter your details to join the whiteboard</p>
+                <h1 className="text-2xl font-bold text-gray-900">Canverse</h1>
+                <p className="text-gray-600 text-sm">Collaborative whiteboard for teams</p>
               </div>
             </div>
           </div>
@@ -115,50 +233,18 @@ export const RoomSelector: React.FC<RoomSelectorProps> = ({ onJoinRoom }) => {
               onChange={(e) => setUserName(e.target.value)}
               placeholder="Enter your name"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-base outline-none focus:border-blue-500 transition-colors"
-              onKeyPress={(e) => e.key === 'Enter' && userName.trim() && roomInput.trim() && handleJoinRoom()}
+              onKeyPress={(e) => e.key === 'Enter' && userName.trim() && handleCreateRoom()}
             />
           </div>
-
-          <div className="mb-8">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Room ID or Link
-            </label>
-            <input
-              type="text"
-              value={roomInput}
-              onChange={(e) => setRoomInput(e.target.value)}
-              placeholder="Paste invite link or Room ID"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-base outline-none focus:border-blue-500 transition-colors font-mono"
-              onKeyPress={(e) => e.key === 'Enter' && userName.trim() && roomInput.trim() && handleJoinRoom()}
-            />
-            <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
-              Enter room ID or paste full invite link
-            </p>
-          </div>
-
-          {error && (
-            <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
 
           <div className="space-y-4">
             <button
-              onClick={handleJoinRoom}
-              disabled={!userName.trim() || !roomInput.trim() || isJoining}
+              onClick={handleCreateRoom}
+              disabled={!userName.trim()}
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
-              {isJoining ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Joining...
-                </>
-              ) : (
-                <>
-                  Join Room
-                  <ArrowRight size={16} />
-                </>
-              )}
+              Create New Room
+              <ArrowRight size={16} />
             </button>
             
             <div className="relative my-6">
@@ -171,72 +257,19 @@ export const RoomSelector: React.FC<RoomSelectorProps> = ({ onJoinRoom }) => {
             </div>
             
             <button
-              onClick={resetFlow}
+              onClick={() => setIsJoinFlow(true)}
               className="w-full text-blue-600 py-3 px-4 rounded-lg font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 border-2 border-blue-200"
             >
-              <ArrowLeft size={16} />
-              Back to Create
+              <Link2 size={16} />
+              Have an invite? Join room
             </button>
           </div>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-5">
-      <div className="bg-white rounded-2xl border border-gray-200 p-10 w-full max-w-md">
-        <div className="mb-10">
-          <div className="flex items-center justify-center mb-5 gap-4">
-            <Users size={40} className="text-blue-600 mr-4" />
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Canverse</h1>
-              <p className="text-gray-600 text-sm">Collaborative whiteboard for teams</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-8">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Your Name
-          </label>
-          <input
-            type="text"
-            value={userName}
-            onChange={(e) => setUserName(e.target.value)}
-            placeholder="Enter your name"
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-base outline-none focus:border-blue-500 transition-colors"
-            onKeyPress={(e) => e.key === 'Enter' && userName.trim() && handleCreateRoom()}
-          />
-        </div>
-
-        <div className="space-y-4">
-          <button
-            onClick={handleCreateRoom}
-            disabled={!userName.trim()}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-          >
-            Create New Room
-            <ArrowRight size={16} />
-          </button>
-          
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="px-4 bg-white text-gray-500 text-sm">or</span>
-            </div>
-          </div>
-          
-          <button
-            onClick={() => setIsJoinFlow(true)}
-            className="w-full text-blue-600 py-3 px-4 rounded-lg font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 border-2 border-blue-200"
-          >
-            <Link2 size={16} />
-            Have an invite? Join room
-          </button>
-        </div>
+      {/* Right Background Section */}
+      <div className="w-1/2 min-h-screen">
+        {/* This section shows the background image */}
       </div>
     </div>
   );
