@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
@@ -28,11 +28,11 @@ const roomEventManager = new RoomEventManager(roomManager);
 app.use(cors());
 app.use(express.json());
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', (req: Request, res: Response) => {
+  res.send('OK');
 });
 
-app.get('/rooms/:roomId/info', async (req, res) => {
+app.get('/rooms/:roomId/info', async (req: Request, res: Response) => {
   try {
     const { roomId } = req.params;
     
