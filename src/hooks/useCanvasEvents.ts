@@ -66,7 +66,7 @@ export const useCanvasEvents = (props: UseCanvasEventsProps) => {
     if (!pointerPos) return;
 
     const worldPos = screenToWorld(pointerPos.x, pointerPos.y);
-
+    // @ts-ignore
     if (tool === 'pan' || (tool !== 'pan' && e.evt.shiftKey)) {
       setIsPanning(true);
       setLastPanPoint({ x: pointerPos.x, y: pointerPos.y });
