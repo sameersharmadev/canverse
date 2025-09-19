@@ -15,6 +15,7 @@ const app = express();
 const server = createServer(app);
 
 const allowedOrigins = [
+  'http://localhost:5173',
   'https://canverse-six.vercel.app',
   'https://canverse.sameersharma.me',
   'https://sameersharma.me'

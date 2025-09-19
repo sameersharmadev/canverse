@@ -44,28 +44,16 @@ export const useVoiceChat = ({
   const hasJoinedVoiceRef = useRef(false);
   const socketListenersSetup = useRef(false);
 
-  console.log('Voice Chat State:', {
-    isInCall,
-    hasJoined: hasJoinedVoiceRef.current,
-    voiceUsersCount: voiceUsers.length,
-    totalInCall: voiceUsers.length + (isInCall ? 1 : 0),
-    isMuted,
-    isSpeaking
-  });
-
   const initializeAudioAnalysis = useCallback((stream: MediaStream) => {
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const analyser = audioContext.createAnalyser();
       const microphone = audioContext.createMediaStreamSource(stream);
-      
       analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.8;
       microphone.connect(analyser);
-      
       audioContextRef.current = audioContext;
       analyserRef.current = analyser;
-
       startSpeakingDetection();
     } catch (err) {
       console.error('Error setting up audio analysis:', err);
@@ -156,12 +144,8 @@ export const useVoiceChat = ({
 
   const createPeer = useCallback((targetUserId: string, isInitiator: boolean, stream: MediaStream) => {
     if (peersRef.current.has(targetUserId)) {
-      console.log(`Peer already exists for ${targetUserId}, cleaning up first`);
       cleanupPeer(targetUserId);
     }
-
-    console.log(`Creating peer for ${targetUserId}, initiator: ${isInitiator}`);
-    
     const peer = new Peer({
       initiator: isInitiator,
       trickle: false,
@@ -175,7 +159,6 @@ export const useVoiceChat = ({
     });
 
     peer.on('signal', (signal) => {
-      console.log(`Sending signal from ${userId} to ${targetUserId}`);
       if (socket && isConnected) {
         socket.emit('voice-signal', {
           roomId,
@@ -187,7 +170,6 @@ export const useVoiceChat = ({
     });
 
     peer.on('stream', (remoteStream) => {
-      console.log(`Received stream from ${targetUserId}`);
       let audio = audioElementsRef.current.get(targetUserId);
       if (!audio) {
         audio = new Audio();
@@ -195,17 +177,12 @@ export const useVoiceChat = ({
         audio.volume = 1;
         audioElementsRef.current.set(targetUserId, audio);
       }
-      
       audio.srcObject = remoteStream;
-      audio.play().catch(err => console.error('Error playing audio:', err));
+      audio.play().catch(() => {});
     });
 
-    peer.on('error', (err) => {
-      console.error('Peer error:', err);
-    });
-
+    peer.on('error', () => {});
     peer.on('close', () => {
-      console.log(`Peer closed: ${targetUserId}`);
       cleanupPeer(targetUserId);
     });
 
@@ -215,19 +192,14 @@ export const useVoiceChat = ({
 
   const joinCall = useCallback(async () => {
     if (hasJoinedVoiceRef.current) {
-      console.log('Already joined voice call, skipping...');
       return;
     }
-
     try {
-      console.log('Attempting to join call...');
       setError('');
       const stream = await getUserMedia();
       setIsInCall(true);
       hasJoinedVoiceRef.current = true;
-      
       if (socket && isConnected) {
-        console.log('Emitting voice-join...');
         socket.emit('voice-join', {
           roomId,
           userId,
@@ -236,7 +208,6 @@ export const useVoiceChat = ({
         });
       }
     } catch (err) {
-      console.error('Failed to join call:', err);
       setIsInCall(false);
       hasJoinedVoiceRef.current = false;
     }
@@ -246,22 +217,17 @@ export const useVoiceChat = ({
     if (!hasJoinedVoiceRef.current) {
       return;
     }
-
-    console.log('Leaving call...');
     hasJoinedVoiceRef.current = false;
     speakingDetectionRef.current = false;
-
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
       localStreamRef.current = null;
     }
-
     if (audioContextRef.current) {
       audioContextRef.current.close();
       audioContextRef.current = null;
     }
     analyserRef.current = null;
-
     peersRef.current.forEach((peer, targetUserId) => {
       peer.destroy();
     });
@@ -271,12 +237,10 @@ export const useVoiceChat = ({
       audio.srcObject = null;
     });
     audioElementsRef.current.clear();
-
     setIsInCall(false);
     setIsSpeaking(false);
     setIsMuted(true);
     setVoiceUsers([]);
-
     if (socket && isConnected) {
       socket.emit('voice-leave', {
         roomId,
@@ -292,7 +256,6 @@ export const useVoiceChat = ({
         const newMutedState = !isMuted;
         audioTrack.enabled = !newMutedState;
         setIsMuted(newMutedState);
-        
         if (socket && isConnected) {
           socket.emit('voice-mute', {
             roomId,
@@ -306,24 +269,13 @@ export const useVoiceChat = ({
 
   useEffect(() => {
     if (!socket || !isConnected || socketListenersSetup.current) return;
-
-    console.log('Setting up voice chat socket listeners...');
     socketListenersSetup.current = true;
 
     const handleVoiceUserJoined = (data: { userId: string; userName: string; userColor: string }) => {
-      console.log('Voice user joined:', data);
-      if (data.userId === userId) {
-        console.log('Ignoring self join event');
-        return;
-      }
-      
+      if (data.userId === userId) return;
       setVoiceUsers(prev => {
         const existing = prev.find(u => u.id === data.userId);
-        if (existing) {
-          console.log('User already exists in voice users');
-          return prev;
-        }
-        
+        if (existing) return prev;
         const newUser = {
           id: data.userId,
           name: data.userName,
@@ -332,37 +284,24 @@ export const useVoiceChat = ({
           isSpeaking: false,
           lastSpeakTime: 0
         };
-        
-        console.log('Adding new voice user:', newUser);
         return [...prev, newUser];
       });
-
       if (isInCall && localStreamRef.current && hasJoinedVoiceRef.current) {
-        console.log('Creating peer for joined user:', data.userId);
         createPeer(data.userId, true, localStreamRef.current);
       }
     };
 
     const handleVoiceUserLeft = (data: { userId: string }) => {
-      console.log('Voice user left:', data);
       cleanupPeer(data.userId);
       setVoiceUsers(prev => prev.filter(u => u.id !== data.userId));
     };
 
     const handleVoiceSignal = (data: { callerUserId: string; signal: any }) => {
-      console.log('Received voice signal from:', data.callerUserId);
-      if (!isInCall || !localStreamRef.current || !hasJoinedVoiceRef.current) {
-        console.log('Not in call, ignoring signal');
-        return;
-      }
-
+      if (!isInCall || !localStreamRef.current || !hasJoinedVoiceRef.current) return;
       let peer = peersRef.current.get(data.callerUserId);
-      
       if (!peer) {
-        console.log('Creating answering peer for:', data.callerUserId);
         peer = createPeer(data.callerUserId, false, localStreamRef.current);
       }
-      
       if (peer) {
         peer.signal(data.signal);
       }
@@ -387,7 +326,6 @@ export const useVoiceChat = ({
     };
 
     const handleVoiceRoomState = (data: { voiceUsers: any[] }) => {
-      console.log('Received voice room state:', data);
       const users = data.voiceUsers.map(u => ({
         id: u.userId,
         name: u.userName,
@@ -397,7 +335,6 @@ export const useVoiceChat = ({
         lastSpeakTime: 0
       }));
       setVoiceUsers(users);
-
       if (isInCall && localStreamRef.current && hasJoinedVoiceRef.current) {
         users.forEach(user => {
           if (user.id !== userId) {
@@ -415,9 +352,7 @@ export const useVoiceChat = ({
     socket.on('voice-room-state', handleVoiceRoomState);
 
     return () => {
-      console.log('Cleaning up voice chat socket listeners...');
       socketListenersSetup.current = false;
-      
       socket.off('voice-user-joined', handleVoiceUserJoined);
       socket.off('voice-user-left', handleVoiceUserLeft);
       socket.off('voice-signal', handleVoiceSignal);

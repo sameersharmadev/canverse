@@ -75,27 +75,22 @@ export class CanvasEventHandlers {
           width: worldPos.x - (element.x || 0),
           height: worldPos.y - (element.y || 0),
         };
-      case 'circle':
-        const startX = element.startX || element.x || 0;
-        const startY = element.startY || element.y || 0;
-        const minX = Math.min(startX, worldPos.x);
-        const minY = Math.min(startY, worldPos.y);
-        const maxX = Math.max(startX, worldPos.x);
-        const maxY = Math.max(startY, worldPos.y);
-        const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
-        const width = maxX - minX;
-        const height = maxY - minY;
-        const radius = Math.min(width, height) / 2;
-        
+      case 'circle': {
+        const startX = element.startX ?? element.x ?? 0;
+        const startY = element.startY ?? element.y ?? 0;
+        const dx = worldPos.x - startX;
+        const dy = worldPos.y - startY;
+        const radius = Math.sqrt(dx * dx + dy * dy);
+
         return {
           ...element,
-          x: centerX,
-          y: centerY,
-          radius: radius,
-          startX: startX,
-          startY: startY
+          x: startX,
+          y: startY,
+          radius,
+          startX,
+          startY
         };
+      }
       case 'arrow':
       case 'line':
         return {

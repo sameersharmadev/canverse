@@ -35,9 +35,7 @@ export class VoiceChatManager {
   private async handleVoiceJoin(
     socket: any,
     data: { roomId: string; userId: string; userName: string; userColor: string }
-  ) {
-    console.log(`User ${data.userName} (${data.userId}) joined voice chat in room ${data.roomId}`);
-    
+  ) {    
     this.roomManager.addUserToVoiceChat(data.roomId, data.userId);
     
     const existingVoiceUsers = this.roomManager.getVoiceUsers(data.roomId);
@@ -54,7 +52,6 @@ export class VoiceChatManager {
           };
         });
       
-      console.log(`Sending existing voice users to ${data.userId}:`, voiceUsersDetails);
       socket.emit('voice-room-state', { voiceUsers: voiceUsersDetails });
     }
     socket.to(data.roomId).emit('voice-user-joined', {
@@ -65,7 +62,6 @@ export class VoiceChatManager {
   }
 
   private handleVoiceLeave(socket: any, data: { roomId: string; userId: string }) {
-    console.log(`User ${data.userId} left voice chat in room ${data.roomId}`);
     
     this.roomManager.removeUserFromVoiceChat(data.roomId, data.userId);
     
@@ -75,7 +71,6 @@ export class VoiceChatManager {
   }
 
   private handleVoiceSignal(data: { roomId: string; targetUserId: string; signal: any; callerUserId: string }) {
-    console.log(`Relaying signal from ${data.callerUserId} to ${data.targetUserId}`);
     
     const sockets = this.io.sockets.adapter.rooms.get(data.roomId);
     if (!sockets) {
@@ -90,7 +85,6 @@ export class VoiceChatManager {
           callerUserId: data.callerUserId,
           signal: data.signal
         });
-        console.log(`Signal delivered to ${data.targetUserId}`);
         return;
       }
     }
@@ -112,9 +106,7 @@ export class VoiceChatManager {
     });
   }
 
-  handleUserDisconnect(roomId: string, userId: string) {
-    console.log(`Cleaning up voice chat for user ${userId} in room ${roomId}`);
-    
+  handleUserDisconnect(roomId: string, userId: string) {    
     this.roomManager.removeUserFromVoiceChat(roomId, userId);
     this.io.to(roomId).emit('voice-user-left', {
       userId: userId

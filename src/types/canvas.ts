@@ -63,5 +63,5 @@ export interface User {
 }
 
 export const COLOR_SWATCHES = [
-  '#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00',
+  '#000000', '#ff0000', '#00ff00', '#0000ff',
 ];

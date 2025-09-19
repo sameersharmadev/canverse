@@ -54,7 +54,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   ];
 
   return (
-    <div className="fixed top-1 left-1/2 transform -translate-x-1/2 z-[100] bg-white px-4 py-3 rounded-b-3xl border border-neutral-200 border-t-0">
+    <div className="fixed top-1 left-1/2 transform -translate-x-1/2 z-[100] bg-white px-4 py-2 rounded-b-3xl border border-neutral-200 border-t-0">
       <div className="flex items-center gap-3 flex-nowrap">
         
         {/* Tools Section */}
@@ -62,13 +62,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           {tools.map(({ name, icon: Icon, shortcut }) => (
             <button
               key={name}
-              onClick={() => setTool(name)}
+              onClick={e => {
+                setTool(name);
+                (e.currentTarget as HTMLButtonElement).blur();
+              }}
               className={`
                 relative p-3 rounded-lg cursor-pointer flex items-center justify-center transition-colors
                 ${tool === name 
                   ? 'bg-blue-100 text-blue-600' 
                   : 'bg-white text-black hover:bg-gray-50'
                 }
+                focus:outline-none
               `}
               title={`${name.slice(0, 1).toUpperCase() + name.slice(1)} (${shortcut})`}
             >
