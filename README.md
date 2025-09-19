@@ -3,8 +3,7 @@
 </p>
 
 <p align="center">
-  <b>Canverse</b> is a collaborative online whiteboard that supports real-time drawing, voice chat, and multi-user presence.<br/>
-  Perfect for remote teams, classrooms, and creative collaboration.
+  <b>Canverse</b> is a collaborative online whiteboard that supports real-time drawing, voice chat, and multi-user presence; ideal for remote teams, classrooms, and creative collaboration.
 </p>
 
 
