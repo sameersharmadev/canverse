@@ -1,11 +1,14 @@
 <p align="center">
-  <img width="400" height="60" alt="New Project (1)" src="https://github.com/user-attachments/assets/2d1442c4-e57a-4aeb-b77a-a08456bac58f" />
+  <img width="400" height="60" alt="Heading" src="https://github.com/user-attachments/assets/2d1442c4-e57a-4aeb-b77a-a08456bac58f" />
 </p>
 
 <p align="center">
   <b>Canverse</b> is a collaborative online whiteboard that supports real-time drawing, voice chat, and multi-user presence; ideal for remote teams, classrooms, and creative collaboration.
 </p>
 
+<p align="center">
+<img width="1280" height="720" alt="Project screenshot" src="https://github.com/user-attachments/assets/a989a516-2b12-4d05-9e0b-3c540c1594f1" />
+</p>
 
 ## Features
 - **Real-time drawing:** Pen, eraser, shapes, arrows, and text tools.
